@@ -58,7 +58,8 @@ for master_node_ip in ${MASTER_NODE_IPS[@]}
   do
     echo ">>> ${master_node_ip}"
     echo "分发CA证书和私钥"
-    ssh k8s@${master_node_ip} "sudo mkdir -p /etc/kubernetes/cert && sudo chown -R k8s:k8s /etc/kubernetes"
+    ssh k8s@${master_node_ip} "sudo mkdir -p /etc/kubernetes/cert
+                               sudo chown -R k8s:k8s /etc/kubernetes"
     scp ca-config.json ca*.pem k8s@${master_node_ip}:/etc/kubernetes/cert/
   done
 

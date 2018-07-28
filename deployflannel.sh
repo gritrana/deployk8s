@@ -1,7 +1,7 @@
 source ~/env.sh
 
 # 创建flannel证书签名请求
-echo "==========创建CA证书签名请求========="
+echo "==========创建flannel证书签名请求========="
 cat > flanneld-csr.json <<EOF
 {
   "CN": "flanneld",
@@ -79,24 +79,26 @@ for node_ip in ${NODE_IPS[@]}
   do
     echo ">>> ${node_ip}"
     echo "分发flannel二进制文件"
-    ssh k8s@${node_ip} "sudo mkdir -p /opt/k8s/bin && sudo chown -R k8s:k8s /opt/k8s"
-    ssh k8s@${node_ip} "if [ -f /opt/k8s/bin/flanneld ];then \
-                        sudo systemctl stop flanneld; \
-                        rm -f /opt/k8s/bin/{flanneld,mk-docker-opts.sh}; \
+    ssh k8s@${node_ip} "sudo mkdir -p /opt/k8s/bin
+                        sudo chown -R k8s:k8s /opt/k8s"
+    ssh k8s@${node_ip} "if [ -f /opt/k8s/bin/flanneld ];then
+                        sudo systemctl stop flanneld
+                        rm -f /opt/k8s/bin/{flanneld,mk-docker-opts.sh}
                         fi"
     scp flannel/{flanneld,mk-docker-opts.sh} k8s@${node_ip}:/opt/k8s/bin/
 
     echo "分发flannel证书和私钥"
-    ssh k8s@${node_ip} "sudo mkdir -p /etc/flanneld/cert && sudo chown -R k8s:k8s /etc/flanneld"
+    ssh k8s@${node_ip} "sudo mkdir -p /etc/flanneld/cert
+                        sudo chown -R k8s:k8s /etc/flanneld"
     scp flanneld*.pem k8s@${node_ip}:/etc/flanneld/cert/
 
     echo "分发flanneld.service"
     scp flanneld.service root@${node_ip}:/usr/lib/systemd/system/
 
-    echo "启动flanneld" # 使用分号分割多个命令
-    ssh k8s@${node_ip} "sudo systemctl daemon-reload \
-                       ;sudo systemctl enable flanneld \
-                       ;sudo systemctl start flanneld"
+    echo "启动flanneld"
+    ssh k8s@${node_ip} "sudo systemctl daemon-reload
+                        sudo systemctl enable flanneld
+                        sudo systemctl start flanneld"
     
     echo "检查启动结果"
     ssh k8s@${node_ip} "sudo systemctl status flanneld | grep Active"
@@ -118,5 +120,5 @@ for node_ip in ${NODE_IPS[@]}
                         ls ${FLANNEL_ETCD_PREFIX}/subnets"
 
     echo "验证各节点能通过Pod网段互通"
-    ssh k8s@${node_ip} "/usr/sbin/ip addr show flannel.1 | grep -w inet"
+    ssh k8s@${node_ip} "ip addr show flannel.1 | grep -w inet"
   done

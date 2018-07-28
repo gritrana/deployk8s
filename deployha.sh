@@ -79,9 +79,9 @@ for (( i=0; i < 3; i++ ))
 
     echo "启动keepalived服务，检查服务"
     ssh k8s@${MASTER_IPS[i]} "sudo systemctl restart keepalived \
-                              ;sudo systemctl status keepalived | grep Active \
-                              ;ip addr show ${VIP_IF} \
-                              ;ping -c 1 ${MASTER_VIP}"
+                              sudo systemctl status keepalived | grep Active
+                              ip addr show ${VIP_IF}
+                              ping -c 1 ${MASTER_VIP}"
   done
 
 # 配置haproxy模板
@@ -136,9 +136,9 @@ for master_ip in ${MASTER_IPS[@]}
     scp haproxy.cfg root@${master_ip}:/etc/haproxy/
 
     echo "启动haproxy服务"
-    ssh k8s@${master_ip} "sudo mkdir -p /run/haproxy \
-                         ;sudo systemctl restart haproxy \
-                         ;sudo systemctl status haproxy | grep Active \
-                         ;sudo netstat -lnpt | grep haproxy"
+    ssh k8s@${master_ip} "sudo mkdir -p /run/haproxy
+                          sudo systemctl restart haproxy
+                          sudo systemctl status haproxy | grep Active
+                          sudo netstat -lnpt | grep haproxy"
   done
 

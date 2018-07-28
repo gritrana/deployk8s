@@ -127,22 +127,28 @@ for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
     echo "分发etcd"
-    ssh k8s@${master_ip} "sudo mkdir -p /opt/k8s/bin && sudo chown -R k8s:k8s /opt/k8s"
-    ssh k8s@${master_ip} "if [ -f /opt/k8s/bin/etcd ];then sudo systemctl stop etcd; rm -f /opt/k8s/bin/etcd; fi"
+    ssh k8s@${master_ip} "sudo mkdir -p /opt/k8s/bin
+                          sudo chown -R k8s:k8s /opt/k8s"
+    ssh k8s@${master_ip} "if [ -f /opt/k8s/bin/etcd ];then
+                          sudo systemctl stop etcd
+                          rm -f /opt/k8s/bin/etcd
+                          fi"
     scp etcd-v3.3.8-linux-amd64/etcd k8s@${master_ip}:/opt/k8s/bin/
     
     echo "分发etcd证书和私钥"
-    ssh k8s@${master_ip} "sudo mkdir -p /etc/etcd/cert && sudo chown -R k8s:k8s /etc/etcd"
+    ssh k8s@${master_ip} "sudo mkdir -p /etc/etcd/cert
+                          sudo chown -R k8s:k8s /etc/etcd"
     scp etcd.pem etcd-key.pem k8s@${master_ip}:/etc/etcd/cert/
 
     echo "分发etcd的systemd unit文件"
-    ssh k8s@${master_ip} "sudo mkdir -p /var/lib/etcd && sudo chown -R k8s:k8s /var/lib/etcd"
+    ssh k8s@${master_ip} "sudo mkdir -p /var/lib/etcd
+                          sudo chown -R k8s:k8s /var/lib/etcd"
     scp etcd-${master_ip}.service root@${master_ip}:/usr/lib/systemd/system/etcd.service
     
     echo "启动etcd，首次启动这里会卡一段时间，不过不要紧" # 使用分号分割多个命令
-    ssh k8s@${master_ip} "sudo systemctl daemon-reload" \
-                         ";sudo systemctl enable etcd" \
-                         ";sudo systemctl start etcd &"
+    ssh k8s@${master_ip} "sudo systemctl daemon-reload
+                          sudo systemctl enable etcd
+                          sudo systemctl start etcd &"
     
     echo "检查启动结果"
     ssh k8s@${master_ip} "sudo systemctl status etcd | grep Active"
@@ -154,20 +160,22 @@ for master_node_ip in ${MASTER_NODE_IPS[@]}
   do
     echo ">>> ${master_node_ip}"
     echo "分发etcdctl"
-    ssh k8s@${master_node_ip} "sudo mkdir -p /opt/k8s/bin && sudo chown -R k8s:k8s /opt/k8s"
+    ssh k8s@${master_node_ip} "sudo mkdir -p /opt/k8s/bin
+                               sudo chown -R k8s:k8s /opt/k8s"
     scp etcd-v3.3.8-linux-amd64/etcdctl k8s@${master_node_ip}:/opt/k8s/bin/
 
     echo "分发etcdctl证书和私钥"
-    ssh k8s@${master_node_ip} "sudo mkdir -p /etc/etcdctl/cert && sudo chown -R k8s:k8s /etc/etcdctl"
+    ssh k8s@${master_node_ip} "sudo mkdir -p /etc/etcdctl/cert
+                               sudo chown -R k8s:k8s /etc/etcdctl"
     scp etcdctl*.pem k8s@${master_node_ip}:/etc/etcdctl/cert/
 
     echo "${master_node_ip}验证etcd"
-    ssh k8s@${master_node_ip} "ETCDCTL_API=3 etcdctl" \
-                              "--endpoints=${ETCD_ENDPOINTS}" \
-                              "--cacert=/etc/kubernetes/cert/ca.pem" \
-                              "--cert=/etc/etcdctl/cert/etcdctl.pem" \
-                              "--key=/etc/etcdctl/cert/etcdctl-key.pem" \
-                              "endpoint health"
+    ssh k8s@${master_node_ip} "ETCDCTL_API=3 etcdctl \
+                               --endpoints=${ETCD_ENDPOINTS} \
+                               --cacert=/etc/kubernetes/cert/ca.pem \
+                               --cert=/etc/etcdctl/cert/etcdctl.pem \
+                               --key=/etc/etcdctl/cert/etcdctl-key.pem \
+                               endpoint health"
   done
 
 
