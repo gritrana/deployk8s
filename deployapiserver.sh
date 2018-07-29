@@ -148,19 +148,19 @@ for master_ip in ${MASTER_IPS[@]}
     scp encryption-config.yaml k8s@${master_ip}:/etc/kubernetes/
 
     echo "分发systemd unit文件"
-    ssh k8s@${master_ip} "sudo mkdir -p /var/log/kubernetes
-                          sudo chown -R k8s:k8s /var/log/kubernetes
-                          sudo mkdir -p /var/run/kubernetes
-                          sudo chown -R k8s:k8s /var/run/kubernetes"
     scp kube-apiserver-${master_ip}.service \
       root@${master_ip}:/usr/lib/systemd/system/kube-apiserver.service
 
     echo "启动kube-apiserver服务"
+    ssh k8s@${master_ip} "sudo mkdir -p /var/log/kubernetes
+                          sudo chown -R k8s:k8s /var/log/kubernetes
+                          sudo mkdir -p /var/run/kubernetes
+                          sudo chown -R k8s:k8s /var/run/kubernetes"
     ssh k8s@${master_ip} "sudo systemctl daemon-reload
                           sudo systemctl enable kube-apiserver
                           sudo systemctl start kube-apiserver
                           sudo systemctl status kube-apiserver | grep Active
-                          sudo netstat -lnpt | grep kube"
+                          sudo netstat -lnpt | grep kube-api"
 
     echo "查看kube-apiserver写入etcd的数据"
     ssh k8s@${master_ip} "ETCDCTL_API=3 etcdctl \
