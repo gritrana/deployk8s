@@ -31,6 +31,7 @@ ls admin*.pem
 
 # 分发kubectl
 sudo cp kubernetes/client/bin/kubectl /usr/local/bin/
+cp admin*.pem .kube/
 
 # 创建kubeconfig文件
 # 设置集群参数
@@ -40,8 +41,8 @@ kubectl config set-cluster kubernetes \
 
 # 设置客户端认证参数
 kubectl config set-credentials admin \
-  --client-certificate=admin.pem \
-  --client-key=admin-key.pem 
+  --client-certificate=.kube/admin.pem \
+  --client-key=.kube/admin-key.pem 
 
 # 设置上下文参数
 kubectl config set-context kubernetes \
