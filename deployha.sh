@@ -1,13 +1,5 @@
 source ~/env.sh
 
-# 安装keepalived和haproxy
-echo "安装keepalived和haproxy"
-for master_ip in ${MASTER_IPS[@]}
-  do
-    echo ">>> ${master_ip}"
-    ssh k8s@${master_ip} "sudo yum install -y keepalived haproxy"
-  done
-
 # keepalived-master配置文件
 echo "=========keepalived-master配置文件========="
 cat > keepalived-master.conf <<EOF
@@ -78,7 +70,9 @@ for (( i=0; i < 3; i++ ))
     fi
 
     echo "启动keepalived服务，检查服务"
-    ssh k8s@${MASTER_IPS[i]} "sudo systemctl restart keepalived \
+    ssh k8s@${MASTER_IPS[i]} "sudo yum install -y keepalived
+                              sudo systemctl enable keepalived
+                              sudo systemctl restart keepalived
                               sudo systemctl status keepalived | grep Active
                               ip addr show ${VIP_IF}
                               ping -c 1 ${MASTER_VIP}"
@@ -91,7 +85,7 @@ global
     log /dev/log local0
     log /dev/log local1 notice
     chroot /var/lib/haproxy
-    stats socket /run/haproxy/admin.sock mode 660 level admin
+    stats socket /var/lib/haproxy/admin.sock mode 660 level admin
     stats timeout 30s
     user haproxy
     group haproxy
@@ -127,7 +121,7 @@ EOF
 cat haproxy.cfg
 
 # 分发haproxy配置文件及启动服务
-echo "分发haproxy配置文件及启动服务"
+echo "==========分发haproxy配置文件及启动服务=========="
 for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
@@ -136,7 +130,9 @@ for master_ip in ${MASTER_IPS[@]}
     scp haproxy.cfg root@${master_ip}:/etc/haproxy/
 
     echo "启动haproxy服务"
-    ssh k8s@${master_ip} "sudo mkdir -p /run/haproxy
+    ssh k8s@${master_ip} "sudo yum install -y haproxy
+                          sudo systemctl enable haproxy
+                          sudo mkdir -p /var/lib/haproxy
                           sudo systemctl restart haproxy
                           sudo systemctl status haproxy | grep Active
                           sudo netstat -lnpt | grep haproxy"
