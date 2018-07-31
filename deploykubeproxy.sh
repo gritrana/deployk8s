@@ -63,7 +63,7 @@ healthzBindAddress: ##NODE_IP##:10256
 hostnameOverride: ##NODE_NAME##
 kind: KubeProxyConfiguration
 metricsBindAddress: ##NODE_IP##:10249
-mode: "ipvs"
+mode: "iptables"
 EOF
 ls kube-proxy.config.yaml.template
 
