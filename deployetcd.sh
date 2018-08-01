@@ -7,9 +7,9 @@ cat > etcd-csr.json <<EOF
   "CN": "etcd",
   "hosts": [
     "127.0.0.1",
-    "192.168.6.211",
-    "192.168.6.212",
-    "192.168.6.213"
+    "${MASTER_IPS[0]}",
+    "${MASTER_IPS[1]}",
+    "${MASTER_IPS[2]}"
   ],
   "key": {
     "algo": "rsa",
