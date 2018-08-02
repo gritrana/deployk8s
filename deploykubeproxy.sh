@@ -96,7 +96,7 @@ ExecStart=/usr/local/bin/kube-proxy \\
 --log-dir=/var/log/kubernetes \\
 --v=2
 Restart=on-failure
-RestartSec=5
+RestartSec=60
 LimitNOFILE=65536
 
 [Install]
@@ -134,7 +134,8 @@ for node_ip in ${NODE_IPS[@]}
       root@${node_ip}:/usr/lib/systemd/system/
 
     echo "启动kube-proxy"
-    ssh root@${node_ip} "systemctl daemon-reload
+    ssh root@${node_ip} "mkdir -p /var/lib/kube-proxy
+                         systemctl daemon-reload
                          systemctl enable kube-proxy
                          systemctl start kube-proxy
                          systemctl status kube-proxy \

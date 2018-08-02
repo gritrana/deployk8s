@@ -116,7 +116,7 @@ ExecStart=/usr/local/bin/kubelet \\
 --log-dir=/var/log/kubernetes \\
 --v=2
 Restart=on-failure
-RestartSec=5
+RestartSec=60
 
 [Install]
 WantedBy=multi-user.target
@@ -234,7 +234,8 @@ for node_ip in ${NODE_IPS[@]}
       root@${node_ip}:/usr/lib/systemd/system/kubelet.service
 
     echo "启动kubelet"
-    ssh root@${node_ip} "systemctl daemon-reload
+    ssh root@${node_ip} "mkdir -p /var/lib/kubelet
+                         systemctl daemon-reload
                          systemctl enable kubelet
                          systemctl start kubelet
                          systemctl status kubelet | grep Active

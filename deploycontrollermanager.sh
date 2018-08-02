@@ -92,8 +92,7 @@ ExecStart=/usr/local/bin/kube-controller-manager \\
   --log-dir=/var/log/kubernetes \\
   --v=2
 Restart=on-failure
-RestartSec=5
-User=k8s
+RestartSec=60
 
 [Install]
 WantedBy=multi-user.target

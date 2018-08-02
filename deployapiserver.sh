@@ -105,9 +105,8 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --log-dir=/var/log/kubernetes \\
   --v=2
 Restart=on-failure
-RestartSec=5
+RestartSec=60
 Type=notify
-User=k8s
 LimitNOFILE=65536
 
 [Install]

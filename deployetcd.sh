@@ -80,7 +80,6 @@ Wants=network-online.target
 Documentation=https://github.com/coreos
 
 [Service]
-User=k8s
 Type=notify
 WorkingDirectory=/var/lib/etcd/
 ExecStart=/usr/local/bin/etcd \\
@@ -102,7 +101,7 @@ ExecStart=/usr/local/bin/etcd \\
   --initial-cluster ${ETCD_NODES} \\
   --initial-cluster-state new
 Restart=on-failure
-RestartSec=5
+RestartSec=60
 LimitNOFILE=65536
 
 [Install]
@@ -142,7 +141,8 @@ for master_ip in ${MASTER_IPS[@]}
       root@${master_ip}:/usr/lib/systemd/system/etcd.service
     
     echo "启动etcd，首次启动这里会卡一段时间，不过不要紧"
-    ssh root@${master_ip} "systemctl daemon-reload
+    ssh root@${master_ip} "mkdir -p /var/lib/etcd
+                           systemctl daemon-reload
                            systemctl enable etcd
                            systemctl start etcd &"
     
