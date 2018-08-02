@@ -118,10 +118,7 @@ for master_ip in ${MASTER_IPS[@]}
                            netstat -lnpt | grep kube-sche"
 
     echo "查看metric"
-    curl -s \
-#        --cacert /etc/kubernetes/cert/ca.pem \
-#        https://127.0.0.1:10251/metrics | head
-         http://127.0.0.1:10251/metrics | head
+    curl -s http://127.0.0.1:10251/metrics | head
   done
 
 # 查看当前的leader
