@@ -22,6 +22,10 @@ Vagrant.configure(2) do |config|
         vb.cpus = 1
     end
 
+    # 挂载失败了，mount: unknown filesystem type 'vboxsf'
+    # config.vm.synced_folder ".", "/home/vagrant/deployk8s"
+    # 使用默认挂载
+
     # 使用shell脚本进行软件安装和配置
     dev.vm.provision "shell", inline: <<-SHELL
 
