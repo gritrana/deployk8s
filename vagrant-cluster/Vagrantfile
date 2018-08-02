@@ -32,8 +32,11 @@ Vagrant.configure(2) do |config|
         sudo chmod 700 /root/.ssh
         sudo \cp /home/vagrant/.ssh/authorized_keys /root/.ssh/
 
+        # yum安装net-tools（centos7.5的box没有net-bools）
+        sudo yum install -y net-tools
+
         # yum安装keepalived和haproxy
-        sudo yum install -y -v keepalived haproxy
+        sudo yum install -y keepalived haproxy
 
         # 永久关闭firewalld
         sudo systemctl disable firewalld
@@ -77,12 +80,15 @@ Vagrant.configure(2) do |config|
         sudo chmod 700 /root/.ssh
         sudo cp /home/vagrant/.ssh/authorized_keys /root/.ssh/
 
+        # yum安装net-tools（centos7.5的box没有net-bools）
+        sudo yum install -y net-tools
+
         # yum安装docker
-        sudo yum install -y -v yum-utils \
+        sudo yum install -y yum-utils \
           device-mapper-persistent-data lvm2
         sudo yum-config-manager --add-repo \
           https://download.docker.com/linux/centos/docker-ce.repo
-        sudo yum install -y -v docker-ce-18.03.0.ce
+        sudo yum install -y docker-ce-18.03.0.ce
 
         # 永久关闭firewalld
         sudo systemctl disable firewalld
