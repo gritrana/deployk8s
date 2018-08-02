@@ -1,0 +1,78 @@
+Vagrant.configure(2) do |config|
+
+  (1..3).each do |i|
+
+    # 配置master虚机
+    config.vm.define "master#{i}" do |master|
+
+      # 设置虚拟机的Box
+      master.vm.box = "centos7"
+
+      # 设置虚拟机的主机名
+      master.vm.hostname = "kube-master#{i}"
+      
+      # 设置虚拟机的IP
+      master.vm.network "private_network", ip: "192.168.0.#{i+10}"
+
+      # VirtaulBox相关配置
+      master.vm.provider "virtualbox" do |vb|
+
+          # 设置虚拟机的内存大小
+          vb.memory = 512
+
+          # 设置虚拟机的CPU个数
+          vb.cpus = 1
+      end
+
+      # 使用shell脚本进行软件安装和配置
+      master.vm.provision "shell", inline: <<-SHELL
+
+        # root远程公钥认证
+        sudo mkdir -p /root/.ssh
+        sudo chmod 700 /root/.ssh
+        sudo \cp /home/vagrant/.ssh/authorized_keys /root/.ssh/
+
+      SHELL
+    end
+
+    # 配置node虚机
+    config.vm.define "node#{i}" do |node|
+
+      # 设置虚拟机的Box
+      node.vm.box = "centos7"
+
+      # 设置虚拟机的主机名
+      node.vm.hostname = "kube-node#{i}"
+      
+      # 设置虚拟机的IP
+      node.vm.network "private_network", ip: "192.168.0.#{i+20}"
+
+      # VirtaulBox相关配置
+      node.vm.provider "virtualbox" do |vb|
+
+          # 设置虚拟机的内存大小
+          vb.memory = 512
+
+          # 设置虚拟机的CPU个数
+          vb.cpus = 1
+      end
+
+      # 使用shell脚本进行软件安装和配置
+      node.vm.provision "shell", inline: <<-SHELL
+
+        # root远程公钥认证
+        sudo mkdir -p /root/.ssh
+        sudo chmod 700 /root/.ssh
+        sudo cp /home/vagrant/.ssh/authorized_keys /root/.ssh/
+
+      SHELL
+    end
+
+  end
+
+  # ssh配置
+  config.ssh.username = "vagrant"
+  config.ssh.private_key_path = "~/.vagrant.d/insecure_private_key"
+  config.ssh.insert_key = false
+
+end
