@@ -172,4 +172,7 @@ for master_node_ip in ${MASTER_NODE_IPS[@]}
                                 endpoint health"
   done
 
+# 也发一份etcdctl二进制到本地
+echo "=========也发一份etcdctl二进制到本地========="
+sudo cp etcd-v3.3.8-linux-amd64/etcdctl /usr/local/bin/
 
