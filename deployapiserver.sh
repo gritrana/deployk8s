@@ -1,4 +1,4 @@
-source ~/env.sh
+source env.sh
 
 # 创建kubernetes证书签名请求
 echo "========创建kubernetes证书签名请求========"

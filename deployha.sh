@@ -1,4 +1,4 @@
-source ~/env.sh
+source env.sh
 
 # keepalived-master配置文件
 echo "=========keepalived-master配置文件========="

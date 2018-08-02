@@ -1,4 +1,4 @@
-source ~/env.sh
+source env.sh
 
 # 创建CA配置文件
 echo "========创建CA配置文件======="

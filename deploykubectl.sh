@@ -1,4 +1,4 @@
-source ~/env.sh
+source env.sh
 
 # 创建证书签名请求
 cat > admin-csr.json <<EOF
