@@ -72,8 +72,7 @@ for (( i=0; i < 3; i++ ))
     fi
 
     echo "启动keepalived服务，检查服务"
-    ssh root@${MASTER_IPS[i]} "yum install -y keepalived
-                               systemctl enable keepalived
+    ssh root@${MASTER_IPS[i]} "systemctl enable keepalived
                                systemctl restart keepalived
                                systemctl status keepalived \
                                | grep Active
@@ -133,8 +132,7 @@ for master_ip in ${MASTER_IPS[@]}
     scp haproxy.cfg root@${master_ip}:/etc/haproxy/
 
     echo "启动haproxy服务"
-    ssh root@${master_ip} "yum install -y haproxy
-                           systemctl enable haproxy
+    ssh root@${master_ip} "systemctl enable haproxy
                            mkdir -p /var/lib/haproxy
                            systemctl restart haproxy
                            systemctl status haproxy | grep Active
