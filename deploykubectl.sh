@@ -31,7 +31,6 @@ ls admin*.pem
 
 # 分发kubectl
 sudo cp kubernetes/client/bin/kubectl /usr/local/bin/
-cp admin*.pem .kube/
 
 # 创建kubeconfig文件
 # 设置集群参数
@@ -51,6 +50,9 @@ kubectl config set-context kubernetes \
 
 # 设置默认上下文
 kubectl config use-context kubernetes
+
+# 分发kubectl证书和密钥
+cp admin*.pem .kube/
 
 : '
 没有必要把kubectl部署到集群中
