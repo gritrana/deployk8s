@@ -25,9 +25,9 @@ ls kube-proxy-csr.json
 # 创建kube-proxy证书和私钥
 echo "=======创建kube-proxy证书和私钥======="
 cfssl gencert \
--ca=/etc/kubernetes/cert/ca.pem \
--ca-key=/etc/kubernetes/cert/ca-key.pem \
--config=/etc/kubernetes/cert/ca-config.json \
+-ca=ca.pem \
+-ca-key=ca-key.pem \
+-config=ca-config.json \
 -profile=kubernetes kube-proxy-csr.json | cfssljson -bare kube-proxy
 ls kube-proxy*.pem
 
