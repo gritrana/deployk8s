@@ -1,5 +1,9 @@
 source env.sh
 
+# 分发一份kubeadm到本地
+echo "=======分发一份kubeadm到本地========="
+sudo cp kubernetes/server/bin/kubeadm /usr/local/bin/
+
 # 创建kubelet bootstrap kubeconfig文件
 echo "========创建kubelet bootstrap kubeconfig文件======="
 for ((i=0; i<3; i++))
