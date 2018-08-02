@@ -41,6 +41,9 @@ Vagrant.configure(2) do |config|
         # selinux永久使能haproxy
         sudo setsebool -P haproxy_connect_any=1
 
+        # 设置CST时区
+        # sudo timedatectl set-timezone Asia/Shanghai
+
       SHELL
     end
 
@@ -88,6 +91,9 @@ Vagrant.configure(2) do |config|
         sudo /usr/sbin/swapoff -a
         sudo cp /etc/fstab /etc/fstab.bak
         sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+
+        # 设置CST时区
+        # sudo timedatectl set-timezone Asia/Shanghai
 
       SHELL
     end
