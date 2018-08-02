@@ -44,7 +44,7 @@ etcdctl \
 
 # 创建flanneld的systemd unit文件
 echo "=======创建flanneld的systemd unit文件========="
-export IFACE=ens33
+#export IFACE=ens33
 cat > flanneld.service << EOF
 [Unit]
 Description=Flanneld overlay address etcd agent

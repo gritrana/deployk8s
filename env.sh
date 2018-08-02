@@ -36,7 +36,7 @@ export MASTER_VIP=192.168.0.10
 export KUBE_APISERVER="https://${MASTER_VIP}:8443"
 
 # HA 节点，配置 VIP 的网络接口名称(ens33或者eth0)
-export VIP_IF="ens33"
+export VIP_IF="eth1"
 
 # etcd名字
 export ETCD_NAMES=(etcd1 etcd2 etcd3) 
