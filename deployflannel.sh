@@ -56,14 +56,14 @@ Before=docker.service
 
 [Service]
 Type=notify
-ExecStart=/opt/k8s/bin/flanneld \\
+ExecStart=/usr/local/bin/flanneld \\
   -etcd-cafile=/etc/kubernetes/cert/ca.pem \\
   -etcd-certfile=/etc/flanneld/cert/flanneld.pem \\
   -etcd-keyfile=/etc/flanneld/cert/flanneld-key.pem \\
   -etcd-endpoints=${ETCD_ENDPOINTS} \\
   -etcd-prefix=${FLANNEL_ETCD_PREFIX} \\
   -iface=${IFACE}
-ExecStartPost=/opt/k8s/bin/mk-docker-opts.sh -k DOCKER_NETWORK_OPTIONS \\
+ExecStartPost=/usr/local/bin/mk-docker-opts.sh -k DOCKER_NETWORK_OPTIONS \\
   -d /run/flannel/docker
 Restart=on-failure
 
@@ -79,32 +79,29 @@ for node_ip in ${NODE_IPS[@]}
   do
     echo ">>> ${node_ip}"
     echo "分发flannel二进制文件"
-    ssh k8s@${node_ip} "sudo mkdir -p /opt/k8s/bin
-                        sudo chown -R k8s:k8s /opt/k8s"
-    ssh k8s@${node_ip} "if [ -f /opt/k8s/bin/flanneld ];then
-                        sudo systemctl stop flanneld
-                        rm -f /opt/k8s/bin/{flanneld,mk-docker-opts.sh}
-                        fi"
-    scp flannel/{flanneld,mk-docker-opts.sh} k8s@${node_ip}:/opt/k8s/bin/
+    ssh root@${node_ip} "if [ -f /usr/local/bin/flanneld ];then
+                         systemctl stop flanneld
+                         rm -f /usr/local/bin/{flanneld,mk-docker-opts.sh}
+                         fi"
+    scp flannel/{flanneld,mk-docker-opts.sh} root@${node_ip}:/usr/local/bin/
 
     echo "分发flannel证书和私钥"
-    ssh k8s@${node_ip} "sudo mkdir -p /etc/flanneld/cert
-                        sudo chown -R k8s:k8s /etc/flanneld"
-    scp flanneld*.pem k8s@${node_ip}:/etc/flanneld/cert/
+    ssh root@${node_ip} "mkdir -p /etc/flanneld/cert"
+    scp flanneld*.pem root@${node_ip}:/etc/flanneld/cert/
 
     echo "分发flanneld.service"
     scp flanneld.service root@${node_ip}:/usr/lib/systemd/system/
 
     echo "启动flanneld"
-    ssh k8s@${node_ip} "sudo systemctl daemon-reload
-                        sudo systemctl enable flanneld
-                        sudo systemctl start flanneld"
+    ssh root@${node_ip} "systemctl daemon-reload
+                         systemctl enable flanneld
+                         systemctl start flanneld"
     
     echo "检查启动结果"
-    ssh k8s@${node_ip} "sudo systemctl status flanneld | grep Active"
+    ssh root@${node_ip} "systemctl status flanneld | grep Active"
 
     echo "查看集群Pod网段"
-    ssh k8s@${node_ip} "etcdctl \
+    ssh root@${node_ip} "etcdctl \
                         --endpoints=${ETCD_ENDPOINTS} \
                         --ca-file=/etc/kubernetes/cert/ca.pem \
                         --cert-file=/etc/flanneld/cert/flanneld.pem \
@@ -112,7 +109,7 @@ for node_ip in ${NODE_IPS[@]}
                         get ${FLANNEL_ETCD_PREFIX}/config"
 
     echo "查看已分配的Pod子网段列表"
-    ssh k8s@${node_ip} "etcdctl \
+    ssh root@${node_ip} "etcdctl \
                         --endpoints=${ETCD_ENDPOINTS} \
                         --ca-file=/etc/kubernetes/cert/ca.pem \
                         --cert-file=/etc/flanneld/cert/flanneld.pem \
@@ -120,5 +117,5 @@ for node_ip in ${NODE_IPS[@]}
                         ls ${FLANNEL_ETCD_PREFIX}/subnets"
 
     echo "验证各节点能通过Pod网段互通"
-    ssh k8s@${node_ip} "ip addr show flannel.1 | grep -w inet"
+    ssh root@${node_ip} "ip addr show flannel.1 | grep -w inet"
   done

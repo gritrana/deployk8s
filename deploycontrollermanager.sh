@@ -67,7 +67,7 @@ Description=Kubernetes Controller Manager
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 
 [Service]
-ExecStart=/opt/k8s/bin/kube-controller-manager \\
+ExecStart=/usr/local/bin/kube-controller-manager \\
   --port=0 \\
   --secure-port=10252 \\
   --bind-address=127.0.0.1 \\
@@ -106,41 +106,34 @@ for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
     echo "分发controller-manager二进制"
-    ssh k8s@${master_ip} "sudo mkdir -p /opt/k8s/bin
-                          sudo chown -R k8s:k8s /opt/k8s"
-    ssh k8s@${master_ip} \
-      "if [ -f /opt/k8s/bin/kube-controller-manager ];then
-       sudo systemctl stop kube-controller-manager
-       rm -f /opt/k8s/bin/kube-controller-manager
+    ssh root@${master_ip} \
+      "if [ -f /usr/local/bin/kube-controller-manager ];then
+       systemctl stop kube-controller-manager
+       rm -f /usr/local/bin/kube-controller-manager
        fi"
     scp kubernetes/server/bin/kube-controller-manager \
-      k8s@${master_ip}:/opt/k8s/bin/
+      root@${master_ip}:/usr/local/bin/
 
     echo "分发证书和私钥"
-    ssh k8s@${master_ip} "sudo mkdir -p /etc/kubernetes/cert
-                          sudo chown -R k8s:k8s /etc/kubernetes"
+    ssh root@${master_ip} "mkdir -p /etc/kubernetes/cert"
     scp kube-controller-manager*.pem \
-      k8s@${master_ip}:/etc/kubernetes/cert/
+      root@${master_ip}:/etc/kubernetes/cert/
 
     echo "分发kubeconfig文件"
     scp kube-controller-manager.kubeconfig \
-      k8s@${master_ip}:/etc/kubernetes/
+      root@${master_ip}:/etc/kubernetes/
 
     echo "分发systemd unit文件"
     scp kube-controller-manager.service \
       root@${master_ip}:/usr/lib/systemd/system/
 
     echo "启动kube-controller-manager服务"
-    ssh k8s@${master_ip} "sudo mkdir -p /var/log/kubernetes
-                          sudo chown -R k8s:k8s /var/log/kubernetes"
-#                          sudo mkdir -p /var/run/kubernetes
-#                          sudo chown -R k8s:k8s /var/run/kubernetes
-    ssh k8s@${master_ip} \
-      "sudo systemctl daemon-reload
-       sudo systemctl enable kube-controller-manager
-       sudo systemctl start kube-controller-manager
-       sudo systemctl status kube-controller-manager | grep Active
-       sudo netstat -lnpt | grep kube-con"
+    ssh root@${master_ip} \
+      "systemctl daemon-reload
+       systemctl enable kube-controller-manager
+       systemctl start kube-controller-manager
+       systemctl status kube-controller-manager | grep Active
+       netstat -lnpt | grep kube-con"
 
     echo "查看metric"
     curl -s \

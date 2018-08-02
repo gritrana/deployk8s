@@ -66,7 +66,7 @@ Description=Kubernetes Scheduler
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 
 [Service]
-ExecStart=/opt/k8s/bin/kube-scheduler \\
+ExecStart=/usr/local/bin/kube-scheduler \\
   --address=127.0.0.1 \\
   --kubeconfig=/etc/kubernetes/kube-scheduler.kubeconfig \\
   --leader-elect=true \\
@@ -89,41 +89,34 @@ for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
     echo "分发scheduler二进制"
-    ssh k8s@${master_ip} "sudo mkdir -p /opt/k8s/bin
-                          sudo chown -R k8s:k8s /opt/k8s"
-    ssh k8s@${master_ip} \
-      "if [ -f /opt/k8s/bin/kube-scheduler ];then
-       sudo systemctl stop kube-scheduler
-       rm -f /opt/k8s/bin/kube-scheduler
+    ssh root@${master_ip} \
+      "if [ -f /usr/local/bin/kube-scheduler ];then
+       systemctl stop kube-scheduler
+       rm -f /usr/local/bin/kube-scheduler
        fi"
     scp kubernetes/server/bin/kube-scheduler \
-      k8s@${master_ip}:/opt/k8s/bin/
+      root@${master_ip}:/usr/local/bin/
 
     echo "分发证书和私钥"
-    ssh k8s@${master_ip} "sudo mkdir -p /etc/kubernetes/cert
-                          sudo chown -R k8s:k8s /etc/kubernetes"
+    ssh root@${master_ip} "mkdir -p /etc/kubernetes/cert"
     scp kube-scheduler*.pem \
-      k8s@${master_ip}:/etc/kubernetes/cert/
+      root@${master_ip}:/etc/kubernetes/cert/
 
     echo "分发kubeconfig文件"
     scp kube-scheduler.kubeconfig \
-      k8s@${master_ip}:/etc/kubernetes/
+      root@${master_ip}:/etc/kubernetes/
 
     echo "分发systemd unit文件"
     scp kube-scheduler.service \
       root@${master_ip}:/usr/lib/systemd/system/
 
     echo "启动kube-scheduler服务"
-    ssh k8s@${master_ip} "sudo mkdir -p /var/log/kubernetes
-                          sudo chown -R k8s:k8s /var/log/kubernetes"
-#                          sudo mkdir -p /var/run/kubernetes
-#                          sudo chown -R k8s:k8s /var/run/kubernetes
-    ssh k8s@${master_ip} \
-      "sudo systemctl daemon-reload
-       sudo systemctl enable kube-scheduler
-       sudo systemctl start kube-scheduler
-       sudo systemctl status kube-scheduler | grep Active
-       sudo netstat -lnpt | grep kube-sche"
+    ssh root@${master_ip} "systemctl daemon-reload
+                           systemctl enable kube-scheduler
+                           systemctl start kube-scheduler
+                           systemctl status kube-scheduler \
+                           | grep Active
+                           netstat -lnpt | grep kube-sche"
 
     echo "查看metric"
     curl -s \

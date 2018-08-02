@@ -49,12 +49,12 @@ for node_ip in ${NODE_IPS[@]}
     scp docker.service root@${node_ip}:/usr/lib/systemd/system/
 
     echo "启动docker"
-    ssh k8s@${node_ip} "sudo systemctl stop firewalld
-                        sudo systemctl disable firewalld
-                        sudo systemctl daemon-reload
-                        sudo systemctl enable docker
-                        sudo systemctl restart docker
-                        sudo systemctl status docker | grep Active
-                        /usr/sbin/ip addr show flannel.1
-                        /usr/sbin/ip addr show docker0"
+    ssh root@${node_ip} "systemctl stop firewalld
+                         systemctl disable firewalld
+                         systemctl daemon-reload
+                         systemctl enable docker
+                         systemctl restart docker
+                         systemctl status docker | grep Active
+                         /usr/sbin/ip addr show flannel.1
+                         /usr/sbin/ip addr show docker0"
   done

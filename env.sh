@@ -57,5 +57,3 @@ export CLUSTER_DNS_SVC_IP="10.254.0.2"
 # 集群 DNS 域名
 export CLUSTER_DNS_DOMAIN="cluster.local."
 
-# 将二进制目录 /opt/k8s/bin 加到 PATH 中
-# export PATH=/opt/k8s/bin:$PATH

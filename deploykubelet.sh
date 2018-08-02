@@ -103,7 +103,7 @@ Requires=docker.service
 
 [Service]
 WorkingDirectory=/var/lib/kubelet
-ExecStart=/opt/k8s/bin/kubelet \\
+ExecStart=/usr/local/bin/kubelet \\
 --bootstrap-kubeconfig=/etc/kubernetes/kubelet-bootstrap.kubeconfig\\
 --cert-dir=/etc/kubernetes/cert \\
 --kubeconfig=/etc/kubernetes/kubelet.kubeconfig \\
@@ -214,37 +214,30 @@ for node_ip in ${NODE_IPS[@]}
   do
     echo ">>> ${node_ip}"
     echo "分发kubelet二进制文件"
-    ssh k8s@${node_ip} "sudo mkdir -p /opt/k8s/bin
-                        sudo chown -R k8s:k8s /opt/k8s
-                        if [ -f /opt/k8s/bin/kubelet ];then
-                        sudo systemctl stop kubelet
-                        rm -f /opt/k8s/bin/kubelet
-                        fi"
-    scp kubernetes/server/bin/kubelet k8s@${node_ip}:/opt/k8s/bin/
+    ssh root@${node_ip} "if [ -f /usr/local/bin/kubelet ];then
+                         systemctl stop kubelet
+                         rm -f /usr/local/bin/kubelet
+                         fi"
+    scp kubernetes/server/bin/kubelet root@${node_ip}:/usr/local/bin/
 
     echo "分发kubelet bootstrap kubeconfig文件"
-    ssh k8s@${node_ip} "sudo mkdir -p /etc/kubernetes
-                        sudo chown -R k8s:k8s /etc/kubernetes"
+    ssh root@${node_ip} "mkdir -p /etc/kubernetes"
     scp kubelet-bootstrap-${node_ip}.kubeconfig \
-      k8s@${node_ip}:/etc/kubernetes/kubelet-bootstrap.kubeconfig
+      root@${node_ip}:/etc/kubernetes/kubelet-bootstrap.kubeconfig
 
     echo "分发kubelet参数配置文件"
     scp kubelet.config-${node_ip}.json \
-      k8s@${node_ip}:/etc/kubernetes/kubelet.config.json
+      root@${node_ip}:/etc/kubernetes/kubelet.config.json
 
     echo "分发kubelet systemd service文件"
     scp kubelet-${node_ip}.service \
       root@${node_ip}:/usr/lib/systemd/system/kubelet.service
 
     echo "启动kubelet"
-    ssh k8s@${node_ip} "sudo mkdir -p /var/lib/kubelet
-                        sudo mkdir -p /var/log/kubernetes
-                        sudo chown -R k8s:k8s /var/log/kubernetes
-                        sudo /usr/sbin/swapoff -a
-                        sudo systemctl daemon-reload
-                        sudo systemctl enable kubelet
-                        sudo systemctl start kubelet
-                        sudo systemctl status kubelet | grep Active
-                        sudo netstat -lnpt | grep kubelet"
+    ssh root@${node_ip} "systemctl daemon-reload
+                         systemctl enable kubelet
+                         systemctl start kubelet
+                         systemctl status kubelet | grep Active
+                         netstat -lnpt | grep kubelet"
   done
 

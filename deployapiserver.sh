@@ -70,7 +70,7 @@ Documentation=https://github.com/GoogleCloudPlatform/kubernetes
 After=network.target
 
 [Service]
-ExecStart=/opt/k8s/bin/kube-apiserver \\
+ExecStart=/usr/local/bin/kube-apiserver \\
   --enable-admission-plugins=Initializers,NamespaceLifecycle,NodeRestriction,LimitRanger,ServiceAccount,DefaultStorageClass,ResourceQuota \\
   --anonymous-auth=false \\
   --experimental-encryption-provider-config=/etc/kubernetes/encryption-config.yaml \\
@@ -131,39 +131,32 @@ for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
     echo "分发apiserver二进制"
-    ssh k8s@${master_ip} "sudo mkdir -p /opt/k8s/bin
-                          sudo chown -R k8s:k8s /opt/k8s"
-    ssh k8s@${master_ip} "if [ -f /opt/k8s/bin/kube-apiserver ];then
-                          sudo systemctl stop kube-apiserver
-                          rm -f /opt/k8s/bin/kube-apiserver
-                          fi"
-    scp kubernetes/server/bin/kube-apiserver k8s@${master_ip}:/opt/k8s/bin/
+    ssh root@${master_ip} "if [ -f /usr/local/bin/kube-apiserver ];then
+                           systemctl stop kube-apiserver
+                           rm -f /usr/local/bin/kube-apiserver
+                           fi"
+    scp kubernetes/server/bin/kube-apiserver root@${master_ip}:/usr/local/bin/
 
     echo "分发证书和私钥"
-    ssh k8s@${master_ip} "sudo mkdir -p /etc/kubernetes/cert
-                          sudo chown -R k8s:k8s /etc/kubernetes"
-    scp kubernetes*.pem k8s@${master_ip}:/etc/kubernetes/cert/
+    ssh root@${master_ip} "mkdir -p /etc/kubernetes/cert"
+    scp kubernetes*.pem root@${master_ip}:/etc/kubernetes/cert/
 
     echo "分发加密配置文件"
-    scp encryption-config.yaml k8s@${master_ip}:/etc/kubernetes/
+    scp encryption-config.yaml root@${master_ip}:/etc/kubernetes/
 
     echo "分发systemd unit文件"
     scp kube-apiserver-${master_ip}.service \
       root@${master_ip}:/usr/lib/systemd/system/kube-apiserver.service
 
     echo "启动kube-apiserver服务"
-    ssh k8s@${master_ip} "sudo mkdir -p /var/log/kubernetes
-                          sudo chown -R k8s:k8s /var/log/kubernetes
-                          sudo mkdir -p /var/run/kubernetes
-                          sudo chown -R k8s:k8s /var/run/kubernetes"
-    ssh k8s@${master_ip} "sudo systemctl daemon-reload
-                          sudo systemctl enable kube-apiserver
-                          sudo systemctl start kube-apiserver
-                          sudo systemctl status kube-apiserver | grep Active
-                          sudo netstat -lnpt | grep kube-api"
+    ssh root@${master_ip} "systemctl daemon-reload
+                           systemctl enable kube-apiserver
+                           systemctl start kube-apiserver
+                           systemctl status kube-apiserver | grep Active
+                           netstat -lnpt | grep kube-api"
 
     echo "查看kube-apiserver写入etcd的数据"
-    ssh k8s@${master_ip} "ETCDCTL_API=3 etcdctl \
+    ssh root@${master_ip} "ETCDCTL_API=3 etcdctl \
                           --endpoints=${ETCD_ENDPOINTS} \
                           --cacert=/etc/kubernetes/cert/ca.pem \
                           --cert=/etc/etcdctl/cert/etcdctl.pem \

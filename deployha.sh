@@ -62,20 +62,23 @@ for (( i=0; i < 3; i++ ))
   do
     echo ">>> ${MASTER_IPS[i]}"
     echo "分发keepalive配置文件"
-    ssh k8s@${MASTER_IPS[i]} "sudo mkdir -p /etc/keepalived"
+    ssh root@${MASTER_IPS[i]} "mkdir -p /etc/keepalived"
     if [ $i -eq 0 ];then
-      scp keepalived-master.conf root@${MASTER_IPS[i]}:/etc/keepalived/keepalived.conf
+      scp keepalived-master.conf \
+        root@${MASTER_IPS[i]}:/etc/keepalived/keepalived.conf
     else
-      scp keepalived-backup.conf root@${MASTER_IPS[i]}:/etc/keepalived/keepalived.conf
+      scp keepalived-backup.conf \
+        root@${MASTER_IPS[i]}:/etc/keepalived/keepalived.conf
     fi
 
     echo "启动keepalived服务，检查服务"
-    ssh k8s@${MASTER_IPS[i]} "sudo yum install -y keepalived
-                              sudo systemctl enable keepalived
-                              sudo systemctl restart keepalived
-                              sudo systemctl status keepalived | grep Active
-                              ip addr show ${VIP_IF}
-                              ping -c 1 ${MASTER_VIP}"
+    ssh root@${MASTER_IPS[i]} "yum install -y keepalived
+                               systemctl enable keepalived
+                               systemctl restart keepalived
+                               systemctl status keepalived \
+                               | grep Active
+                               /usr/sbin/ip addr show ${VIP_IF}
+                               ping -c 1 ${MASTER_VIP}"
   done
 
 # 配置haproxy模板
@@ -126,15 +129,15 @@ for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
     echo "分发haproxy配置文件"
-    ssh k8s@${master_ip} "sudo mkdir -p /etc/haproxy"
+    ssh root@${master_ip} "mkdir -p /etc/haproxy"
     scp haproxy.cfg root@${master_ip}:/etc/haproxy/
 
     echo "启动haproxy服务"
-    ssh k8s@${master_ip} "sudo yum install -y haproxy
-                          sudo systemctl enable haproxy
-                          sudo mkdir -p /var/lib/haproxy
-                          sudo systemctl restart haproxy
-                          sudo systemctl status haproxy | grep Active
-                          sudo netstat -lnpt | grep haproxy"
+    ssh root@${master_ip} "yum install -y haproxy
+                           systemctl enable haproxy
+                           mkdir -p /var/lib/haproxy
+                           systemctl restart haproxy
+                           systemctl status haproxy | grep Active
+                           netstat -lnpt | grep haproxy"
   done
 

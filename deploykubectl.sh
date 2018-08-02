@@ -59,16 +59,15 @@ for master_node_ip in ${MASTER_NODE_IPS[@]}
   do
     echo ">>> ${master_node_ip}"
     echo "分发kubectl"
-    ssh k8s@${master_node_ip} "sudo mkdir -p /opt/k8s/bin
-                               sudo chown -R k8s:k8s /opt/k8s"
-    scp kubernetes/client/bin/kubectl k8s@${master_node_ip}:/opt/k8s/bin/
+    ssh root@${master_node_ip} "mkdir -p /usr/local/bin"
+    scp kubernetes/client/bin/kubectl root@${master_node_ip}:/usr/local/bin/
 
     echo "分发kubectl证书及私钥"
-    scp admin*.pem k8s@${master_node_ip}:~/
+    scp admin*.pem root@${master_node_ip}:~/
     
     echo "分发kubectl配置文件"
-    ssh k8s@${master_node_ip} "mkdir -p ~/.kube"
-    scp kubectl.kubeconfig k8s@${master_node_ip}:~/.kube/config
+    ssh root@${master_node_ip} "mkdir -p ~/.kube"
+    scp kubectl.kubeconfig root@${master_node_ip}:~/.kube/config
   done
 '
 

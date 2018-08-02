@@ -31,7 +31,7 @@ spec:
       volumes:
         - name: my-config
           hostPath:
-            path: /home/k8s/testgin
+            path: /root/testgin
 
 ---
 # kubectl expose deployment testgin --type=NodePort --port=8080
@@ -56,8 +56,8 @@ ls testgin.yaml
 for node_ip in ${NODE_IPS[@]}
   do
     echo ">>> ${node_ip}"
-    ssh k8s@${node_ip} "mkdir -p /home/k8s/testgin"
-    scp config.json k8s@${node_ip}:/home/k8s/testgin/
+    ssh root@${node_ip} "mkdir -p /root/testgin"
+    scp config.json root@${node_ip}:/root/testgin/
   done
 
 # 创建testgin部署并暴露服务
