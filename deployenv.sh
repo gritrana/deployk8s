@@ -5,6 +5,9 @@ echo "=========设置master机器环境========="
 for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
+    echo "yum安装keepalived和haproxy"
+    yum install -y keepalived haproxy
+
     echo "永久关闭firewalld"
     ssh root@${master_ip} "systemctl disable firewalld"
 
@@ -16,6 +19,13 @@ echo "=========设置node机器环境========="
 for node_ip in ${NODE_IPS[@]}
   do
     echo ">>> ${node_ip}"
+    echo "yum安装docker"
+    yum install -y yum-utils \
+      device-mapper-persistent-data lvm2
+    yum-config-manager --add-repo \
+      https://download.docker.com/linux/centos/docker-ce.repo
+    yum install docker-ce-18.03.0.ce
+
     echo "永久关闭firewalld"
     ssh root@${node_ip} "systemctl disable firewalld"
 
