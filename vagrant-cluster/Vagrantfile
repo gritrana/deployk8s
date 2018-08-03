@@ -24,35 +24,18 @@ Vagrant.configure(2) do |config|
           vb.cpus = 1
       end
 
-      # 使用shell脚本进行软件安装和配置
+      # master上shell脚本
       master.vm.provision "shell", inline: <<-SHELL
 
         # 如果下面的echo回来的是乱码，那么设置mingw的字符编码选项设置为utf8
-        # 允许root用户远程公钥认证
-        echo "允许root用户远程公钥认证"
-        sudo mkdir -p /root/.ssh
-        sudo chmod 700 /root/.ssh
-        sudo cp /home/vagrant/.ssh/authorized_keys /root/.ssh/
-
-        # yum安装net-tools（centos7.5的box没有net-bools）
-        echo "yum安装net-tools"
-        sudo yum install -y net-tools
 
         # yum安装keepalived和haproxy
         echo "yum安装keepalived和haproxy"
         sudo yum install -y keepalived haproxy
 
-        # 永久关闭firewalld
-        echo "永久关闭firewalld"
-        sudo systemctl disable firewalld
-
         # selinux永久使能haproxy
         echo "selinux永久使能haproxy"
         sudo setsebool -P haproxy_connect_any=1
-
-        # 设置CST时区
-        echo "设置CST时区"
-        sudo timedatectl set-timezone Asia/Shanghai
 
       SHELL
     end
@@ -79,19 +62,10 @@ Vagrant.configure(2) do |config|
           vb.cpus = 1
       end
 
-      # 使用shell脚本进行软件安装和配置
+      # node上shell脚本
       node.vm.provision "shell", inline: <<-SHELL
 
         # 如果下面的echo回来的是乱码，那么设置mingw的字符编码选项设置为utf8
-        # 允许root用户远程公钥认证
-        echo "允许root用户远程公钥认证"
-        sudo mkdir -p /root/.ssh
-        sudo chmod 700 /root/.ssh
-        sudo cp /home/vagrant/.ssh/authorized_keys /root/.ssh/
-
-        # yum安装net-tools（centos7.5的box没有net-bools）
-        echo "yum安装net-tools"
-        sudo yum install -y net-tools
 
         # yum安装docker
         echo "yum安装docker"
@@ -101,24 +75,42 @@ Vagrant.configure(2) do |config|
           https://download.docker.com/linux/centos/docker-ce.repo
         sudo yum install -y docker-ce-18.03.0.ce
 
-        # 永久关闭firewalld
-        echo "永久关闭firewalld"
-        sudo systemctl disable firewalld
-
         # 永久关闭swap分区
         echo "永久关闭swap分区"
         sudo /usr/sbin/swapoff -a
         sudo cp /etc/fstab /etc/fstab.bak
         sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 
-        # 设置CST时区
-        echo "设置CST时区"
-        # sudo timedatectl set-timezone Asia/Shanghai
-
       SHELL
+
     end
 
   end
+
+  # master和node公共脚本
+  config.vm.provision "shell", inline: <<-SHELL
+
+    # 如果下面的echo回来的是乱码，那么设置mingw的字符编码选项设置为utf8
+
+    # 允许root用户远程公钥认证
+    echo "允许root用户远程公钥认证"
+    sudo mkdir -p /root/.ssh
+    sudo chmod 700 /root/.ssh
+    sudo cp /home/vagrant/.ssh/authorized_keys /root/.ssh/
+
+    # yum安装net-tools（centos7.5的box没有net-bools）
+    echo "yum安装net-tools"
+    sudo yum install -y net-tools
+
+    # 永久关闭firewalld
+    echo "永久关闭firewalld"
+    sudo systemctl disable firewalld
+
+    # 设置CST时区
+    echo "设置CST时区"
+    # sudo timedatectl set-timezone Asia/Shanghai
+
+  SHELL
 
   # ssh配置
   config.ssh.username = "vagrant"
