@@ -62,7 +62,7 @@ ExecStart=/usr/local/bin/flanneld \\
   -etcd-keyfile=/etc/flanneld/cert/flanneld-key.pem \\
   -etcd-endpoints=${ETCD_ENDPOINTS} \\
   -etcd-prefix=${FLANNEL_ETCD_PREFIX} \\
-  -iface=${IFACE}
+  -iface=${VIP_IF}
 ExecStartPost=/usr/local/bin/mk-docker-opts.sh -k DOCKER_NETWORK_OPTIONS \\
   -d /run/flannel/docker
 Restart=on-failure
