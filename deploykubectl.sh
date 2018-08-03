@@ -22,6 +22,7 @@ cat > admin-csr.json <<EOF
 EOF
 
 # 生成kubectl证书和私钥
+echo "=======生成kubectl证书和私钥========"
 cfssl gencert \
   -ca=ca.pem \
   -ca-key=ca-key.pem \
@@ -29,10 +30,23 @@ cfssl gencert \
   -profile=kubernetes admin-csr.json | cfssljson -bare admin
 ls admin*.pem
 
+: '
+# 分发kubectl证书和密钥
+echo "=======分发kubectl证书和密钥========"
+mkdir -p ~/.kube
+cp admin*.pem ~/.kube/
+ls ~/.kube/
+'
+
 # 分发kubectl
+echo "========分发kubectl======="
 sudo cp kubernetes/server/bin/kubectl /usr/local/bin/
+ls /usr/local/bin/
 
 # 创建kubeconfig文件
+# --certificate-authority参数没法把~/.kube解析成相对路径
+# 这里只能使用相对路径下的证书和密钥了，copy的时候需要留意
+echo "=========创建kubeconfig文件========="
 # 设置集群参数
 kubectl config set-cluster kubernetes \
   --certificate-authority=ca.pem \
@@ -40,8 +54,8 @@ kubectl config set-cluster kubernetes \
 
 # 设置客户端认证参数
 kubectl config set-credentials admin \
-  --client-certificate=.kube/admin.pem \
-  --client-key=.kube/admin-key.pem 
+  --client-certificate=admin.pem \
+  --client-key=admin-key.pem
 
 # 设置上下文参数
 kubectl config set-context kubernetes \
@@ -50,9 +64,6 @@ kubectl config set-context kubernetes \
 
 # 设置默认上下文
 kubectl config use-context kubernetes
-
-# 分发kubectl证书和密钥
-cp admin*.pem .kube/
 
 : '
 没有必要把kubectl部署到集群中
