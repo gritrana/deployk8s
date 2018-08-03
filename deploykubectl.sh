@@ -30,7 +30,7 @@ cfssl gencert \
 ls admin*.pem
 
 # 分发kubectl
-sudo cp kubernetes/client/bin/kubectl /usr/local/bin/
+sudo cp kubernetes/server/bin/kubectl /usr/local/bin/
 
 # 创建kubeconfig文件
 # 设置集群参数
