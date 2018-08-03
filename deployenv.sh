@@ -15,7 +15,7 @@ echo "========解压etcd v3.3.8========="
 tar -xzvf etcd-v3.3.8-linux-amd64.tar.gz
 if [ $? -ne 0 ];then exit; if
 
-echo "========解压flannle v0.10.0========="
+echo "========解压flannel v0.10.0========="
 #curl -O https://github.com/coreos/flannel/releases/download/v0.10.0/flannel-v0.10.0-linux-amd64.tar.gz
 mkdir flannel
 tar -xzvf flannel-v0.10.0-linux-amd64.tar.gz -C flannel
