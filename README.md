@@ -64,57 +64,68 @@ curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 ./deployenv.sh
 ```
 
-第6步，部署ca  
+第6步，部署CA根证书  
 ```sh
 ./deployca.sh
 ```
 
-第7步，部署etcd
+第7步，部署coreos家的产品
+* 7.1部署etcd  
 ```sh
 ./deployetcd.sh
 ```
 
-第8步，部署flannel网络
+* 7.2部署flannel网络  
 ```sh
 ./deployflannel.sh
 ```
 
-第9步，部署docker
+第8步，部署docker  
 ```sh
 ./deploydocker.sh
 ```
 
-第10步，部署ha高可用
+第9步，部署keepalived和haproxy高可用  
 ```sh
 ./deployha.sh
 ```
 
-第11步，部署kube-apiserver
+以上都是基础设施。
+
+第10步，部署k8s全家桶  
+* 10.1部署kubectl到dev  
+```sh
+./deploykubectl.sh
+```
+
+* 10.2部署kube-apiserver  
 ```sh
 ./deployapiserver.sh
 ```
 
-第12步，部署kube-controller-manager
+* 10.3部署kube-controller-manager  
 ```sh
 ./deploycontrollermanager.sh
 ```
 
-第13步，部署kube-scheduler
+* 10.4部署kube-scheduler  
 ```sh
 ./deployscheduler.sh
 ```
 
-第14步，部署kubelet
+* 10.5部署kubelet  
 ```sh
 ./deploykubelet.sh
 ```
 
-第15步，部署kube-proxy
+* 10.6部署kube-proxy  
 ```sh
 ./deploykubeproxy.sh
 ```
 
-第16步，部署应用
+第11步，预留  
+
+第12步，部署应用  
 ```sh
 ./deployapp.sh
 ```
