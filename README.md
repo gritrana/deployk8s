@@ -56,9 +56,6 @@ curl -O https://github.com/coreos/etcd/releases/download/v3.3.8/etcd-v3.3.8-linu
 curl -O https://github.com/coreos/flannel/releases/download/v0.10.0/flannel-v0.10.0-linux-amd64.tar.gz
 
 # 下载kubernetes v1.11.0
-curl -O https://github.com/coreos/flannel/releases/download/v0.10.0/flannel-v0.10.0-linux-amd64.tar.gz
-
-# 下载kubernetes v1.11.0
 curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 
 ./deployenv.sh
