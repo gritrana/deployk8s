@@ -29,6 +29,9 @@ Vagrant.configure(2) do |config|
     # 使用shell脚本进行软件安装和配置
     dev.vm.provision "shell", inline: <<-SHELL
 
+      echo "不用认证主机公钥"
+      sudo sed -i 's/#\s\+StrictHostKeyChecking ask/StrictHostKeyChecking no/' \
+        /etc/ssh/ssh_config
     SHELL
   end
 
