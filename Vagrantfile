@@ -35,7 +35,11 @@ Vagrant.configure(2) do |config|
 
       echo "yum安装git"
       sudo yum install -y git
-      
+
+      echo "yum安装vim"
+      sudo yum install -y vim
+      echo alias vi=vim >> ~/.bashrc
+
     SHELL
   end
 
