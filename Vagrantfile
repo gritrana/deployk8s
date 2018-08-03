@@ -32,6 +32,10 @@ Vagrant.configure(2) do |config|
       echo "不用认证主机公钥"
       sudo sed -i 's/#\s\+StrictHostKeyChecking ask/StrictHostKeyChecking no/' \
         /etc/ssh/ssh_config
+
+      echo "yum安装git"
+      sudo yum install -y git
+      
     SHELL
   end
 
