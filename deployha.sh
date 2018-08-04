@@ -1,5 +1,64 @@
 source env.sh
 
+# 配置haproxy模板
+echo "============配置haproxy模板=========="
+cat > haproxy.cfg <<EOF
+global
+    log /dev/log local0
+    log /dev/log local1 notice
+    chroot /var/lib/haproxy
+    stats socket /var/lib/haproxy/admin.sock mode 660 level admin
+    stats timeout 30s
+    user haproxy
+    group haproxy
+    daemon
+    nbproc 1
+
+defaults
+    log global
+    timeout connect 5000
+    timeout client 10m
+    timeout server 10m
+
+listen admin_stats
+    bind 0.0.0.0:10080
+    mode http
+    log 127.0.0.1 local0 err
+    stats refresh 30s
+    stats uri /status
+    stats realm welcome login\ Haproxy
+    stats auth admin:123456
+    stats hide-version
+    stats admin if TRUE
+
+listen kube-master
+    bind 0.0.0.0:8443
+    mode tcp
+    option tcplog
+    balance source
+    server ${MASTER_IPS[0]} ${MASTER_IPS[0]}:6443 check inter 2000 fall 2 rise 2 weight 1
+    server ${MASTER_IPS[1]} ${MASTER_IPS[1]}:6443 check inter 2000 fall 2 rise 2 weight 1
+    server ${MASTER_IPS[2]} ${MASTER_IPS[2]}:6443 check inter 2000 fall 2 rise 2 weight 1
+EOF
+cat haproxy.cfg
+
+# 分发haproxy配置文件及启动服务
+echo "==========分发haproxy配置文件及启动服务=========="
+for master_ip in ${MASTER_IPS[@]}
+  do
+    echo ">>> ${master_ip}"
+    echo "分发haproxy配置文件"
+    ssh root@${master_ip} "mkdir -p /etc/haproxy"
+    scp haproxy.cfg root@${master_ip}:/etc/haproxy/
+
+    echo "启动haproxy服务"
+    ssh root@${master_ip} "systemctl enable haproxy
+                           mkdir -p /var/lib/haproxy
+                           systemctl restart haproxy
+                           systemctl status haproxy | grep Active
+                           netstat -lnpt | grep haproxy"
+  done
+
 # keepalived-master配置文件
 echo "=========keepalived-master配置文件========="
 cat > keepalived-master.conf <<EOF
@@ -78,64 +137,5 @@ for (( i=0; i < 3; i++ ))
                                | grep Active
                                /usr/sbin/ip addr show ${VIP_IF}
                                ping -c 1 ${MASTER_VIP}"
-  done
-
-# 配置haproxy模板
-echo "============配置haproxy模板=========="
-cat > haproxy.cfg <<EOF
-global
-    log /dev/log local0
-    log /dev/log local1 notice
-    chroot /var/lib/haproxy
-    stats socket /var/lib/haproxy/admin.sock mode 660 level admin
-    stats timeout 30s
-    user haproxy
-    group haproxy
-    daemon
-    nbproc 1
-
-defaults
-    log global
-    timeout connect 5000
-    timeout client 10m
-    timeout server 10m
-
-listen admin_stats
-    bind 0.0.0.0:10080
-    mode http
-    log 127.0.0.1 local0 err
-    stats refresh 30s
-    stats uri /status
-    stats realm welcome login\ Haproxy
-    stats auth admin:123456
-    stats hide-version
-    stats admin if TRUE
-
-listen kube-master
-    bind 0.0.0.0:8443
-    mode tcp
-    option tcplog
-    balance source
-    server ${MASTER_IPS[0]} ${MASTER_IPS[0]}:6443 check inter 2000 fall 2 rise 2 weight 1
-    server ${MASTER_IPS[1]} ${MASTER_IPS[1]}:6443 check inter 2000 fall 2 rise 2 weight 1
-    server ${MASTER_IPS[2]} ${MASTER_IPS[2]}:6443 check inter 2000 fall 2 rise 2 weight 1
-EOF
-cat haproxy.cfg
-
-# 分发haproxy配置文件及启动服务
-echo "==========分发haproxy配置文件及启动服务=========="
-for master_ip in ${MASTER_IPS[@]}
-  do
-    echo ">>> ${master_ip}"
-    echo "分发haproxy配置文件"
-    ssh root@${master_ip} "mkdir -p /etc/haproxy"
-    scp haproxy.cfg root@${master_ip}:/etc/haproxy/
-
-    echo "启动haproxy服务"
-    ssh root@${master_ip} "systemctl enable haproxy
-                           mkdir -p /var/lib/haproxy
-                           systemctl restart haproxy
-                           systemctl status haproxy | grep Active
-                           netstat -lnpt | grep haproxy"
   done
 
