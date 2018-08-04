@@ -29,11 +29,23 @@ echo "========解压kubernetes v1.11.0"
 tar -xzvf kubernetes-server-linux-amd64.tar.gz
 if [ $? -ne 0 ];then exit; fi
 
+echo "=======创建调试脚本======="
+cat > getlog-master.sh <<EOF
+sed -n -e '/Keepalived/p' /var/log/messages > keepalived.log
+sed -n -e '/haproxy/p' /var/log/messages > haproxy.log
+EOF
+ls getlog-master.sh
+
 # 设置master机器环境
 echo "=========设置master机器环境========="
 for ((i=0; i<3; i++))
   do
     echo ">>> ${MASTER_IPS[i]}"
+    echo "分发调试脚本"
+    scp getlog-master.sh root@${MASTER_IPS[i]}:~/getlog.sh
+    ssh root@${MASTER_IPS[i]} "chmod +x getlog.sh"
+
+    echo "修改hosts"
     for ((j=0; j<3; j++))
       do
         echo "修改hosts，追加${MASTER_IPS[j]} ${MASTER_NAMES[j]}"
@@ -50,6 +62,8 @@ echo "=========设置node机器环境========="
 for ((i=0; i<3; i++))
   do
     echo ">>> ${NODE_IPS[i]}"
+
+    echo "修改hosts"
     for ((j=0; j<3; j++))
       do
         echo "修改hosts，追加${NODE_IPS[j]} ${NODE_NAMES[j]}"
