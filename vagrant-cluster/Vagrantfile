@@ -28,6 +28,7 @@ Vagrant.configure(2) do |config|
       master.vm.provision "shell", inline: <<-SHELL
 
         # 如果下面的echo回来的是乱码，那么设置mingw的字符编码选项设置为utf8
+        echo "=====执行master私有脚本====="
 
         # yum安装keepalived和haproxy
         echo "yum安装keepalived和haproxy"
@@ -36,6 +37,10 @@ Vagrant.configure(2) do |config|
         # selinux永久使能haproxy
         echo "selinux永久使能haproxy"
         sudo setsebool -P haproxy_connect_any=1
+
+        # 安装psmisc，不然killall命令没法用
+        echo "安装psmisc，不然killall命令没法用"
+        sudo yum install -y psmisc
 
       SHELL
     end
@@ -66,6 +71,7 @@ Vagrant.configure(2) do |config|
       node.vm.provision "shell", inline: <<-SHELL
 
         # 如果下面的echo回来的是乱码，那么设置mingw的字符编码选项设置为utf8
+        echo "=====执行node私有脚本====="
 
         # yum安装docker
         echo "yum安装docker"
@@ -91,6 +97,7 @@ Vagrant.configure(2) do |config|
   config.vm.provision "shell", inline: <<-SHELL
 
     # 如果下面的echo回来的是乱码，那么设置mingw的字符编码选项设置为utf8
+    echo "=====执行公共脚本====="
 
     # 允许root用户远程公钥认证
     echo "允许root用户远程公钥认证"
