@@ -33,12 +33,24 @@ Vagrant.configure(2) do |config|
       sudo sed -i 's/#\s\+StrictHostKeyChecking ask/StrictHostKeyChecking no/' \
         /etc/ssh/ssh_config
 
+      # 将yum的base源设置为aliyun
+      echo "将yum的base源设置为aliyun"
+      if [ -z "sed -n -e '/aliyun.*CentOS-7/p' /etc/yum.repos.d/CentOS-Base.repo" ];then
+      sudo mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
+      sudo curl -o /etc/yum.repos.d/CentOS-Base.repo \
+        http://mirrors.aliyun.com/repo/Centos-7.repo
+      fi
+
+      # 禁用fastmirror插件
+      echo "禁用fastmirror插件"
+      sudo sed -i 's/enabled=1/enabled=0/' /etc/yum/pluginconf.d/fastestmirror.conf
+
       echo "yum安装git"
       sudo yum install -y git
 
       echo "yum安装vim"
       sudo yum install -y vim
-      echo alias vi=vim >> ~/.bashrc
+      echo "alias vi=vim" >> ~/.bashrc
 
       # 设置CST时区
       echo "设置CST时区"
