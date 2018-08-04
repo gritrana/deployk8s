@@ -40,6 +40,15 @@ Vagrant.configure(2) do |config|
       sudo yum install -y vim
       echo alias vi=vim >> ~/.bashrc
 
+      # 设置CST时区
+      echo "设置CST时区"
+      sudo timedatectl set-timezone Asia/Shanghai
+
+      # 重启依赖系统时间的服务
+      echo "重启依赖系统时间的服务"
+      sudo systemctl restart rsyslog
+      sudo systemctl restart crond
+
     SHELL
   end
 
