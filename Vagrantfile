@@ -50,7 +50,6 @@ Vagrant.configure(2) do |config|
 
       echo "yum安装vim"
       sudo yum install -y vim
-      echo "alias vi=vim" >> ~/.bashrc
 
       # 设置CST时区
       echo "设置CST时区"
