@@ -25,24 +25,7 @@ Vagrant.configure(2) do |config|
       end
 
       # master上shell脚本
-      master.vm.provision "shell", inline: <<-SHELL
-
-        # 如果下面的echo回来的是乱码，那么设置mingw的字符编码选项设置为utf8
-        echo "=====执行master私有脚本====="
-
-        # yum安装keepalived和haproxy
-        echo "yum安装keepalived和haproxy"
-        sudo yum install -y keepalived haproxy
-
-        # selinux永久使能haproxy
-        echo "selinux永久使能haproxy"
-        sudo setsebool -P haproxy_connect_any=1
-
-        # 安装psmisc，不然killall命令没法用
-        echo "安装psmisc，不然killall命令没法用"
-        sudo yum install -y psmisc
-
-      SHELL
+      master.vm.provision "shell", path: "master.sh"
     end
 
     # 配置node虚机
@@ -68,73 +51,14 @@ Vagrant.configure(2) do |config|
       end
 
       # node上shell脚本
-      node.vm.provision "shell", inline: <<-SHELL
-
-        # 如果下面的echo回来的是乱码，那么设置mingw的字符编码选项设置为utf8
-        echo "=====执行node私有脚本====="
-
-        # yum安装docker
-        echo "yum安装docker"
-        sudo yum install -y yum-utils \
-          device-mapper-persistent-data lvm2
-        sudo yum-config-manager --add-repo \
-          https://download.docker.com/linux/centos/docker-ce.repo
-        sudo yum install -y docker-ce-18.03.0.ce
-
-        # 永久关闭swap分区
-        echo "永久关闭swap分区"
-        sudo /usr/sbin/swapoff -a
-        sudo cp /etc/fstab /etc/fstab.bak
-        sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
-
-      SHELL
+      node.vm.provision "shell", path: "node.sh"
 
     end
 
   end
 
   # master和node公共脚本
-  config.vm.provision "shell", inline: <<-SHELL
-
-    # 如果下面的echo回来的是乱码，那么设置mingw的字符编码选项设置为utf8
-    echo "=====执行公共脚本====="
-
-    # 允许root用户远程公钥认证
-    echo "允许root用户远程公钥认证"
-    sudo mkdir -p /root/.ssh
-    sudo chmod 700 /root/.ssh
-    sudo cp /home/vagrant/.ssh/authorized_keys /root/.ssh/
-
-    # 将yum的base源设置为aliyun
-    echo "将yum的base源设置为aliyun"
-    if [ -z "sed -n -e '/aliyun.*CentOS-7/p' /etc/yum.repos.d/CentOS-Base.repo" ];then
-    sudo mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
-    sudo curl -o /etc/yum.repos.d/CentOS-Base.repo \
-      http://mirrors.aliyun.com/repo/Centos-7.repo
-    fi
-
-    # 禁用fastmirror插件
-    echo "禁用fastmirror插件"
-    sudo sed -i 's/enabled=1/enabled=0/' /etc/yum/pluginconf.d/fastestmirror.conf
-
-    # yum安装net-tools（centos7.5的box没有net-bools）
-    echo "yum安装net-tools"
-    sudo yum install -y net-tools
-
-    # 永久关闭firewalld
-    echo "永久关闭firewalld"
-    sudo systemctl disable firewalld
-
-    # 设置CST时区
-    echo "设置CST时区"
-    sudo timedatectl set-timezone Asia/Shanghai
-
-    # 重启依赖系统时间的服务
-    echo "重启依赖系统时间的服务"
-    sudo systemctl restart rsyslog
-    sudo systemctl restart crond
-
-  SHELL
+  config.vm.provision "shell", path: "common.sh"
 
   # ssh配置
   config.ssh.username = "vagrant"

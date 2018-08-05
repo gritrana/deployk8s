@@ -27,40 +27,7 @@ Vagrant.configure(2) do |config|
     # 使用默认挂载
 
     # 使用shell脚本进行软件安装和配置
-    dev.vm.provision "shell", inline: <<-SHELL
-
-      echo "不用认证主机公钥"
-      sudo sed -i 's/#\s\+StrictHostKeyChecking ask/StrictHostKeyChecking no/' \
-        /etc/ssh/ssh_config
-
-      # 将yum的base源设置为aliyun
-      echo "将yum的base源设置为aliyun"
-      if [ -z "sed -n -e '/aliyun.*CentOS-7/p' /etc/yum.repos.d/CentOS-Base.repo" ];then
-      sudo mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
-      sudo curl -o /etc/yum.repos.d/CentOS-Base.repo \
-        http://mirrors.aliyun.com/repo/Centos-7.repo
-      fi
-
-      # 禁用fastmirror插件
-      echo "禁用fastmirror插件"
-      sudo sed -i 's/enabled=1/enabled=0/' /etc/yum/pluginconf.d/fastestmirror.conf
-
-      echo "yum安装git"
-      sudo yum install -y git
-
-      echo "yum安装vim"
-      sudo yum install -y vim
-
-      # 设置CST时区
-      echo "设置CST时区"
-      sudo timedatectl set-timezone Asia/Shanghai
-
-      # 重启依赖系统时间的服务
-      echo "重启依赖系统时间的服务"
-      sudo systemctl restart rsyslog
-      sudo systemctl restart crond
-
-    SHELL
+    dev.vm.provision "shell", path: "dev.sh"
   end
 
   # ssh配置
