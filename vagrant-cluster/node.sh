@@ -9,7 +9,7 @@ yum install -y docker-ce-18.03.0.ce
 
 echo "永久关闭swap分区"
 /usr/sbin/swapoff -a
-if [ -z `sed -n -e '/^#.*swap.*/p' /etc/fstab` ]; then
+if [ -z "`sed -n -e '/^#.*swap.*/p' /etc/fstab`" ]; then
 cp /etc/fstab /etc/fstab.bak
 sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 fi

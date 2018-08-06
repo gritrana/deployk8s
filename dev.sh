@@ -5,7 +5,7 @@ sed -i 's/^#\s\+StrictHostKeyChecking ask/StrictHostKeyChecking no/' \
 /etc/ssh/ssh_config
 
 echo "将yum的base源设置为aliyun"
-if [[ -z `sed -n -e '/aliyun.*CentOS-7/p' /etc/yum.repos.d/CentOS-Base.repo` ]]; then
+if [ -z "`sed -n -e '/aliyun.*CentOS-7/p' /etc/yum.repos.d/CentOS-Base.repo`" ]; then
 mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
 curl -o /etc/yum.repos.d/CentOS-Base.repo \
 http://mirrors.aliyun.com/repo/Centos-7.repo
