@@ -68,12 +68,17 @@ curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 ./deployenv.sh
 ```
 
-### 第6步，部署CA根证书  
+### 第6步，部署keepalived和haproxy高可用  
+```sh
+./deployha.sh
+```
+
+### 第7步，部署CA根证书  
 ```sh
 ./deployca.sh
 ```
 
-### 第7步，部署coreos家的产品
+### 第8步，部署coreos家的产品
 * 7.1部署etcd  
 ```sh
 ./deployetcd.sh
@@ -84,16 +89,10 @@ curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 ./deployflannel.sh
 ```
 
-### 第8步，部署docker  
+### 第9步，部署docker  
 ```sh
 ./deploydocker.sh
 ```
-
-### 第9步，部署keepalived和haproxy高可用  
-```sh
-./deployha.sh
-```
-
 以上都是基础设施。
 
 ### 第10步，部署k8s全家桶  
