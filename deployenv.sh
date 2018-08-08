@@ -8,32 +8,32 @@ sudo cp cfssl_linux-amd64 /usr/local/bin/cfssl
 sudo cp cfssljson_linux-amd64 /usr/local/bin/cfssljson
 # curl -O https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64
 sudo cp cfssl-certinfo_linux-amd64 /usr/local/bin/cfssl-certinfo
-if [ $? -ne 0 ];then exit; fi
+if [ $? -ne 0 ];then exit 1; fi
 sudo chmod +x /usr/local/bin/cfssl*
 ls /usr/local/bin/cfssl*
 
 echo "========解压keepalived v2.0.6========"
 # curl -O curl -O http://www.keepalived.org/software/keepalived-2.0.6.tar.gz
 tar -xzvf keepalived-2.0.6.tar.gz
-if [ $? -ne 0 ];then exit; fi
+if [ $? -ne 0 ];then exit 1; fi
 
 echo "========解压etcd v3.3.8========="
 # curl -O https://github.com/coreos/etcd/releases/download/v3.3.8/etcd-v3.3.8-linux-amd64.tar.gz
 tar -xzvf etcd-v3.3.8-linux-amd64.tar.gz
-if [ $? -ne 0 ];then exit; fi
+if [ $? -ne 0 ];then exit 1; fi
 
 echo "========解压flannel v0.10.0========="
 #curl -O https://github.com/coreos/flannel/releases/download/v0.10.0/flannel-v0.10.0-linux-amd64.tar.gz
 mkdir -p flannel
 tar -xzvf flannel-v0.10.0-linux-amd64.tar.gz -C flannel
-if [ $? -ne 0 ];then exit; fi
+if [ $? -ne 0 ];then exit 1; fi
 
 echo "========解压kubernetes v1.11.0"
 # 要使用其它版本的kubernetes 请到https://github.com/kubernetes/kubernetes/releases 查看
 # 对应的版本的CHANGELOG.md. 找到对应的链接下载
 # curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 tar -xzvf kubernetes-server-linux-amd64.tar.gz
-if [ $? -ne 0 ];then exit; fi
+if [ $? -ne 0 ];then exit 1; fi
 
 echo "=======创建调试脚本======="
 cat > getlog-master.sh <<EOF
@@ -48,10 +48,8 @@ for ip in ${MASTER_NODE_IPS[@]}
     echo ">>> ${ip}"
     ssh root@${ip} echo "should skip host authenticity"
   done
-if [ $? -ne 0 ];then
-echo "验证失败，退出脚本"
-exit
-fi
+if [ $? -ne 0 ];then echo "验证失败，退出脚本";exit 1;fi
+
 
 # 设置master机器环境
 echo "=========设置master机器环境========="
@@ -77,6 +75,8 @@ for ((i=0; i<3; i++))
           "
       done
   done
+if [ $? -ne 0 ];then echo "设置master机器环境失败，退出脚本";exit 1;fi
+
 
 # 设置node机器环境
 echo "=========设置node机器环境========="
@@ -99,4 +99,4 @@ for ((i=0; i<3; i++))
           "
       done
   done
-
+if [ $? -ne 0 ];then echo "设置node机器环境失败，退出脚本";exit 1;fi

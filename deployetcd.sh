@@ -145,7 +145,8 @@ for master_ip in ${MASTER_IPS[@]}
                            systemctl daemon-reload
                            systemctl enable etcd
                            systemctl start etcd &"
-    
+    if [ $? -ne 0 ];then echo "启动etcd失败，退出脚本";exit 1;fi
+
     echo "检查启动结果"
     ssh root@${master_ip} "systemctl status etcd | grep Active"
   done
@@ -170,9 +171,12 @@ for master_node_ip in ${MASTER_NODE_IPS[@]}
                                 --cert=/etc/etcdctl/cert/etcdctl.pem \
                                 --key=/etc/etcdctl/cert/etcdctl-key.pem \
                                 endpoint health"
+    if [ $? -ne 0 ];then echo "分发etcdctl失败，退出脚本";exit 1;fi
   done
 
 # 也发一份etcdctl二进制到本地
-echo "=========也发一份etcdctl二进制到本地========="
+echo "=========也发一份etcdctl二进制到dev========="
 sudo cp etcd-v3.3.8-linux-amd64/etcdctl /usr/local/bin/
+if [ $? -ne 0 ];then echo "分发etcdctl到dev失败，退出脚本";exit 1;fi
+ls /usr/local/bin/etcdctl
 

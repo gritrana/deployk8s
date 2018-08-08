@@ -3,6 +3,7 @@ source env.sh
 # 分发一份kubeadm到本地
 echo "=======分发一份kubeadm到本地========="
 sudo cp kubernetes/server/bin/kubeadm /usr/local/bin/
+if [ $? -ne 0 ];then echo "分发kubeadm失败，退出脚本";exit 1;fi
 
 # 创建kubelet bootstrap kubeconfig文件
 echo "========创建kubelet bootstrap kubeconfig文件======="
@@ -43,6 +44,7 @@ for ((i=0; i<3; i++))
 # 显示刚刚创建的bootstrap token
 echo "=========显示刚刚创建的bootstrap token========="
 kubeadm token list --kubeconfig ~/.kube/config
+if [ $? -ne 0 ];then echo "显示kubeadm token失败，退出脚本";exit 1;fi
 
 # 创建kubelet参数配置模板文件
 echo "========创建kubelet参数配置模板文件======="
@@ -244,5 +246,6 @@ for node_ip in ${NODE_IPS[@]}
                          systemctl start kubelet
                          systemctl status kubelet | grep Active
                          netstat -lnpt | grep kubelet"
+    if [ $? -ne 0 ];then echo "启动kubelet失败，退出脚本";exit 1;fi
   done
 

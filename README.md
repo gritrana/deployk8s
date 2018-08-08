@@ -38,6 +38,7 @@ vagrant up master3
 vagrant up node1
 vagrant up node2
 vagrant up node3
+# 可以直接vagrant up来启动所有机器
 ```
 到这一步如果成功了，还是很不容易的，部署工作基本成功了一半。
 
@@ -69,72 +70,16 @@ curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 ```
 最后就开始执行脚本进行部署吧。
 
-### 第5步，部署集群环境  
+### 第5~10步，部署集群  
 ```sh
-./deployenv.sh | tee deployenv.log
+./deployk8s.sh | tee deployk8s.log
 ```
-
-### 第6步，部署keepalived和haproxy高可用  
-```sh
-./deployha.sh | tee deployha.log
-```
-
-### 第7步，部署CA根证书  
-```sh
-./deployca.sh | tee deployca.log
-```
-
-### 第8步，部署coreos家的产品
-* 8.1部署etcd  
-```sh
-./deployetcd.sh | tee deployetcd.log
-```
-
-* 8.2部署flannel网络  
-```sh
-./deployflannel.sh | tee deployflannel.log
-```
-
-### 第9步，部署docker  
-```sh
-./deploydocker.sh | tee deploydocker.log
-```
-以上都是基础设施。
-
-### 第10步，部署k8s全家桶  
-* 10.1部署kubectl到dev  
-```sh
-./deploykubectl.sh | tee deploykubectl.log
-```
-
-* 10.2部署kube-apiserver  
-```sh
-./deployapiserver.sh | tee deployapiserver.log
-```
-
-* 10.3部署kube-controller-manager  
-```sh
-./deploycontrollermanager.sh | tee deploycontrollermanager.log
-```
-
-* 10.4部署kube-scheduler  
-```sh
-./deployscheduler.sh | tee deployscheduler.log
-```
-
-* 10.5部署kubelet  
-```sh
-./deploykubelet.sh | tee deploykubelet.log
-```
-
-* 10.6部署kube-proxy  
-```sh
-./deploykubeproxy.sh | tee deploykubeproxy.log
-```
+这个部署脚本会打印出日志，通过日志来定位哪里出了问题。
 
 ### 第11步，预留  
 
-### 第12步，部署应用  
+### 第12步，部署自己的应用（这是可选的）  
+比如我自己的一个docker镜像：
 ```sh
 ./deployapp.sh | tee deployapp.log
 ```

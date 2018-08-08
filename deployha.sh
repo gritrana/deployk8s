@@ -57,13 +57,16 @@ for master_ip in ${MASTER_IPS[@]}
                            systemctl restart haproxy
                            systemctl status haproxy | grep Active
                            netstat -lnpt | grep haproxy"
+    if [ $? -ne 0 ];then echo "启动haproxy服务失败，退出脚本";exit 1;fi
   done
+
 
 # 编译keepalived
 echo "=======编译keepalived======="
 cd keepalived-2.0.6
 ./configure
 make
+if [ $? -ne 0 ];then echo "编译keepalived失败，退出脚本";exit 1;fi
 cd ..
 
 # 创建keepalived systemd unit文件
@@ -171,9 +174,9 @@ for (( i=0; i < 3; i++ ))
     echo ">>> ${MASTER_IPS[i]}"
     echo "分发keepalived二进制"
     ssh root@${MASTER_IPS[i]} "if [ -f /usr/local/bin/keepalived ];then
-                           systemctl stop keepalived
-                           rm -f /usr/local/bin/keepalived
-                           fi"
+                               systemctl stop keepalived
+                               rm -f /usr/local/bin/keepalived
+                               fi"
     scp keepalived-2.0.6/bin/keepalived root@${MASTER_IPS[i]}:/usr/local/bin/
 
     echo "分发keepalived的systemd unit文件"
@@ -202,5 +205,6 @@ for (( i=0; i < 3; i++ ))
                                | grep Active
                                /usr/sbin/ip addr show ${VIP_IF}
                                ping -c 1 ${MASTER_VIP}"
+    if [ $? -ne 0 ];then echo "启动keepalived服务失败，退出脚本";exit 1;fi
   done
 

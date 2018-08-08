@@ -116,6 +116,7 @@ for master_ip in ${MASTER_IPS[@]}
                            systemctl status kube-scheduler \
                            | grep Active
                            netstat -lnpt | grep kube-sche"
+    if [ $? -ne 0 ];then echo "启动scheduler失败，退出脚本";exit 1;fi
 
     echo "查看metric"
     curl -s http://127.0.0.1:10251/metrics | head
@@ -126,3 +127,4 @@ echo "========查看当前的leader========="
 kubectl get endpoints kube-scheduler \
   --namespace=kube-system \
   -o yaml
+if [ $? -ne 0 ];then echo "查看scheduler的leader失败，退出脚本";exit 1;fi

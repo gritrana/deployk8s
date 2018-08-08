@@ -60,6 +60,7 @@ for master_node_ip in ${MASTER_NODE_IPS[@]}
     echo "分发CA证书和私钥"
     ssh root@${master_node_ip} "mkdir -p /etc/kubernetes/cert"
     scp ca-config.json ca*.pem root@${master_node_ip}:/etc/kubernetes/cert/
+    if [ $? -ne 0 ];then echo "分发CA证书和私钥失败，退出脚本";exit 1;fi
   done
 
 

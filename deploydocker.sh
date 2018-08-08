@@ -57,4 +57,5 @@ for node_ip in ${NODE_IPS[@]}
                          systemctl status docker | grep Active
                          /usr/sbin/ip addr show flannel.1
                          /usr/sbin/ip addr show docker0"
+    if [ $? -ne 0 ];then echo "启动docker失败，退出脚本";exit 1;fi
   done

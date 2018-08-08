@@ -133,6 +133,7 @@ for master_ip in ${MASTER_IPS[@]}
        systemctl start kube-controller-manager
        systemctl status kube-controller-manager | grep Active
        netstat -lnpt | grep kube-con"
+    if [ $? -ne 0 ];then echo "启动controller-manager失败，退出脚本";exit 1;fi
 
     echo "查看metric"
     curl -s \
@@ -145,3 +146,4 @@ echo "========查看当前的leader========="
 kubectl get endpoints kube-controller-manager \
   --namespace=kube-system \
   -o yaml
+if [ $? -ne 0 ];then echo "查看controller-manager的leader失败，退出脚本";exit 1;fi

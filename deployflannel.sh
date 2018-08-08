@@ -96,7 +96,8 @@ for node_ip in ${NODE_IPS[@]}
     ssh root@${node_ip} "systemctl daemon-reload
                          systemctl enable flanneld
                          systemctl start flanneld"
-    
+    if [ $? -ne 0 ];then echo "启动flanneld失败，退出脚本";exit 1;fi
+
     echo "检查启动结果"
     ssh root@${node_ip} "systemctl status flanneld | grep Active"
 

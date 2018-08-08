@@ -153,6 +153,7 @@ for master_ip in ${MASTER_IPS[@]}
                            systemctl start kube-apiserver
                            systemctl status kube-apiserver | grep Active
                            netstat -lnpt | grep kube-api"
+    if [ $? -ne 0 ];then echo "启动kube-apiserver失败，退出脚本";exit 1;fi
 
     echo "查看kube-apiserver写入etcd的数据"
     ssh root@${master_ip} "ETCDCTL_API=3 etcdctl \
@@ -182,3 +183,4 @@ kubectl create clusterrolebinding \
   --clusterrole=system:kubelet-api-admin \
   --user kubernetes
 
+if [ $? -ne 0 ];then echo "执行kubectl命令失败，退出脚本";exit 1;fi

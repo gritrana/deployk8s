@@ -141,4 +141,5 @@ for node_ip in ${NODE_IPS[@]}
                          systemctl status kube-proxy \
                          | grep Active
                          netstat -lnpt | grep kube-pro"
+    if [ $? -ne 0 ];then echo "启动kube-proxy失败，退出脚本";exit 1;fi
   done

@@ -41,6 +41,7 @@ ls ~/.kube/
 # 分发kubectl
 echo "========分发kubectl======="
 sudo cp kubernetes/server/bin/kubectl /usr/local/bin/
+if [ $? -ne 0 ];then echo "分发kubectl失败，退出脚本";exit 1;fi
 ls /usr/local/bin/
 
 # 创建kubeconfig文件
