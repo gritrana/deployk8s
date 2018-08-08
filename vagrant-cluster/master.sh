@@ -1,7 +1,7 @@
 echo "=====执行master私有脚本====="
 
-echo "yum安装keepalived和haproxy"
-yum install -y keepalived haproxy
+echo "yum安装haproxy"
+yum install -y haproxy
 
 echo "selinux永久使能haproxy"
 setsebool -P haproxy_connect_any=1

@@ -59,6 +59,55 @@ for master_ip in ${MASTER_IPS[@]}
                            netstat -lnpt | grep haproxy"
   done
 
+# 编译keepalived
+echo "=======编译keepalived======="
+cd keepalived-2.0.6
+./configure
+make
+cd ..
+
+# 创建keepalived systemd unit文件
+echo "=========创建keepalived systemd unit文件========="
+cat > keepalived.service <<"EOF"
+[Unit]
+Description=LVS and VRRP High Availability Monitor
+After= network-online.target syslog.target
+Wants=network-online.target
+
+[Service]
+Type=forking
+PIDFile=/var/run/keepalived.pid
+KillMode=process
+EnvironmentFile=-/etc/sysconfig/keepalived
+ExecStart=/usr/local/bin/keepalived $KEEPALIVED_OPTIONS
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target
+EOF
+cat keepalived.service
+
+# 创建keepalived启动文件
+echo "=========创建keepalived启动文件========="
+cat > keepalived.env <<"EOF"
+# Options for keepalived. See `keepalived --help' output and keepalived(8) and
+# keepalived.conf(5) man pages for a list of all options. Here are the most
+# common ones :
+#
+# --vrrp               -P    Only run with VRRP subsystem.
+# --check              -C    Only run with Health-checker subsystem.
+# --dont-release-vrrp  -V    Dont remove VRRP VIPs & VROUTEs on daemon stop.
+# --dont-release-ipvs  -I    Dont remove IPVS topology on daemon stop.
+# --dump-conf          -d    Dump the configuration data.
+# --log-detail         -D    Detailed log messages.
+# --log-facility       -S    0-7 Set local syslog facility (default=LOG_DAEMON)
+#
+
+KEEPALIVED_OPTIONS="-D"
+
+EOF
+cat keepalived.env
+
 # keepalived-master配置文件
 echo "=========keepalived-master配置文件========="
 cat > keepalived-master.conf <<EOF
@@ -120,7 +169,22 @@ echo "==========分发keepalived配置文件及启动========"
 for (( i=0; i < 3; i++ ))
   do
     echo ">>> ${MASTER_IPS[i]}"
-    echo "分发keepalive配置文件"
+    echo "分发keepalived二进制"
+    ssh root@${MASTER_IPS[i]} "if [ -f /usr/local/bin/keepalived ];then
+                           systemctl stop keepalived
+                           rm -f /usr/local/bin/keepalived
+                           fi"
+    scp keepalived-2.0.6/bin/keepalived root@${MASTER_IPS[i]}:/usr/local/bin/
+
+    echo "分发keepalived的systemd unit文件"
+    scp keepalived.service \
+      root@${MASTER_IPS[i]}:/usr/lib/systemd/system/keepalived.service
+
+    echo "分发keepalived启动文件"
+    scp keepalived.env \
+        root@${MASTER_IPS[i]}:/etc/sysconfig/keepalived
+
+    echo "分发keepalived配置文件"
     ssh root@${MASTER_IPS[i]} "mkdir -p /etc/keepalived"
     if [ $i -eq 0 ];then
       scp keepalived-master.conf \
@@ -131,7 +195,8 @@ for (( i=0; i < 3; i++ ))
     fi
 
     echo "启动keepalived服务，检查服务"
-    ssh root@${MASTER_IPS[i]} "systemctl enable keepalived
+    ssh root@${MASTER_IPS[i]} "systemctl daemon-reload
+                               systemctl enable keepalived
                                systemctl restart keepalived
                                systemctl status keepalived \
                                | grep Active

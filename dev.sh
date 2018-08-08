@@ -20,6 +20,9 @@ yum install -y git
 echo "yum安装vim"
 yum install -y vim
 
+echo "yum安装gcc等(用来编译keepalived)"
+yum install -y gcc openssl-devel libnl3-devel net-snmp-devel libnfnetlink-devel
+
 echo "设置CST时区"
 timedatectl set-timezone Asia/Shanghai
 

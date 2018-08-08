@@ -12,6 +12,11 @@ if [ $? -ne 0 ];then exit; fi
 sudo chmod +x /usr/local/bin/cfssl*
 ls /usr/local/bin/cfssl*
 
+echo "========解压keepalived v2.0.6========"
+# curl -O curl -O http://www.keepalived.org/software/keepalived-2.0.6.tar.gz
+tar -xzvf keepalived-2.0.6.tar.gz
+if [ $? -ne 0 ];then exit; fi
+
 echo "========解压etcd v3.3.8========="
 # curl -O https://github.com/coreos/etcd/releases/download/v3.3.8/etcd-v3.3.8-linux-amd64.tar.gz
 tar -xzvf etcd-v3.3.8-linux-amd64.tar.gz
