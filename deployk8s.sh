@@ -133,3 +133,4 @@ else
 fi
 
 echo "k8s集群部署完成了，使用kubectl get nodes验证一下"
+
