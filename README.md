@@ -72,7 +72,7 @@ curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 
 ### 第5~10步，部署集群  
 ```sh
-./deployk8s.sh | tee deployk8s.log
+./deployk8s.sh 2>&1 | tee deployk8s.log
 ```
 这个部署脚本会打印出日志，通过日志来定位哪里出了问题。
 
