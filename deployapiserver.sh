@@ -112,7 +112,7 @@ LimitNOFILE=65536
 [Install]
 WantedBy=multi-user.target
 EOF
-cat kube-apiserver.service.template
+ls kube-apiserver.service.template
 
 # 创建kube-apiserver systemd unit文件
 echo "=======创建kube-apiserver systemd unit文件======="
@@ -122,6 +122,7 @@ for (( i=0; i < 3; i++ ))
     sed -e "s/##NODE_NAME##/${MASTER_NAMES[i]}/" \
         -e "s/##NODE_IP##/${MASTER_IPS[i]}/" \
         kube-apiserver.service.template > kube-apiserver-${MASTER_IPS[i]}.service
+    cat kube-apiserver-${MASTER_IPS[i]}.service
   done
 
 # 分发并启动kube-apiserver
