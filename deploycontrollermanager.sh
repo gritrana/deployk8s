@@ -7,9 +7,9 @@ cat > kube-controller-manager-csr.json <<EOF
     "CN": "system:kube-controller-manager",
     "hosts": [
         "127.0.0.1",
-        "$MASTER_IPS[0]",
-        "$MASTER_IPS[1]",
-        "$MASTER_IPS[2]"
+        "${MASTER_IPS[0]}",
+        "${MASTER_IPS[1]}",
+        "${MASTER_IPS[2]}"
     ],    
     "key": {
         "algo": "rsa",
