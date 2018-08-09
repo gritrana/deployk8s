@@ -4,6 +4,7 @@ source env.sh
 echo "=======分发一份kubeadm到本地========="
 sudo cp kubernetes/server/bin/kubeadm /usr/local/bin/
 if [ $? -ne 0 ];then echo "分发kubeadm失败，退出脚本";exit 1;fi
+ls /usr/local/bin/kubeadm
 
 # 创建kubelet bootstrap kubeconfig文件
 echo "========创建kubelet bootstrap kubeconfig文件======="
@@ -95,7 +96,7 @@ for node_ip in ${NODE_IPS[@]}
     sed -e "s/##NODE_IP##/${node_ip}/" \
       kubelet.config.json.template > \
       kubelet.config-${node_ip}.json
-    ls kubelet.config-${node_ip}.json
+    cat kubelet.config-${node_ip}.json
   done
 
 # 创建kubelet systemd service模板文件
@@ -137,6 +138,7 @@ for ((i=0; i<3; i++))
     sed -e "s/##NODE_NAME##/${NODE_NAMES[i]}/" \
       kubelet.service.template > \
       kubelet-${NODE_IPS[i]}.service
+    cat kubelet-${NODE_IPS[i]}.service
   done
 
 # 创建cluster role binding
@@ -211,7 +213,7 @@ roleRef:
   name: approve-node-server-renewal-csr
   apiGroup: rbac.authorization.k8s.io
 EOF
-ls kubelet-crb.yaml
+cat kubelet-crb.yaml
 kubectl apply -f kubelet-crb.yaml
 
 # 分发并启动kubelet
@@ -220,10 +222,11 @@ for node_ip in ${NODE_IPS[@]}
   do
     echo ">>> ${node_ip}"
     echo "分发kubelet二进制文件"
-    ssh root@${node_ip} "if [ -f /usr/local/bin/kubelet ];then
-                         systemctl stop kubelet
-                         rm -f /usr/local/bin/kubelet
-                         fi"
+    ssh root@${node_ip} "
+      if [ -f /usr/local/bin/kubelet ];then
+      systemctl stop kubelet
+      rm -f /usr/local/bin/kubelet
+      fi"
     scp kubernetes/server/bin/kubelet root@${node_ip}:/usr/local/bin/
 
     echo "分发kubelet bootstrap kubeconfig文件"
@@ -240,12 +243,17 @@ for node_ip in ${NODE_IPS[@]}
       root@${node_ip}:/usr/lib/systemd/system/kubelet.service
 
     echo "启动kubelet"
-    ssh root@${node_ip} "mkdir -p /var/lib/kubelet
-                         systemctl daemon-reload
-                         systemctl enable kubelet
-                         systemctl start kubelet
-                         systemctl status kubelet | grep Active
-                         netstat -lnpt | grep kubelet"
+    ssh root@${node_ip} "
+      mkdir -p /var/lib/kubelet
+      mkdir -p /var/log/kubernetes
+      systemctl daemon-reload
+      systemctl enable kubelet
+      systemctl start kubelet
+      echo 'wait 5s for kubelet up'
+      sleep 5
+      systemctl status kubelet | grep Active
+      netstat -lnpt | grep kubelet"
+
     if [ $? -ne 0 ];then echo "启动kubelet失败，退出脚本";exit 1;fi
   done
 

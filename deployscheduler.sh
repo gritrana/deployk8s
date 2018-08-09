@@ -26,7 +26,7 @@ cat > kube-scheduler-csr.json <<EOF
     ]
 }
 EOF
-ls kube-scheduler-csr.json
+cat kube-scheduler-csr.json
 
 # 生成scheduler证书和私钥
 echo "========生成scheduler证书和私钥========"
@@ -57,6 +57,7 @@ kubectl config set-context system:kube-scheduler \
 
 kubectl config use-context system:kube-scheduler \
   --kubeconfig=kube-scheduler.kubeconfig
+cat kube-scheduler.kubeconfig
 
 # 创建scheduler systemd unit文件
 echo "=========创建scheduler systemd unit文件========="
@@ -80,7 +81,7 @@ RestartSec=60
 [Install]
 WantedBy=multi-user.target
 EOF
-ls kube-scheduler.service
+cat kube-scheduler.service
 
 # 分发scheduler及启动
 echo "=========分发scheduler及启动========="
@@ -110,21 +111,24 @@ for master_ip in ${MASTER_IPS[@]}
       root@${master_ip}:/usr/lib/systemd/system/
 
     echo "启动kube-scheduler服务"
-    ssh root@${master_ip} "systemctl daemon-reload
-                           systemctl enable kube-scheduler
-                           systemctl start kube-scheduler
-                           systemctl status kube-scheduler \
-                           | grep Active
-                           netstat -lnpt | grep kube-sche"
+    ssh root@${master_ip} "
+      mkdir -p /var/log/kubernetes
+      systemctl daemon-reload
+      systemctl enable kube-scheduler
+      systemctl start kube-scheduler
+      echo 'wait 5s for scheduler up'
+      sleep 5
+      systemctl status kube-scheduler | grep Active
+      netstat -lnpt | grep kube-sche
+      echo '查看metric'
+      curl -s http://127.0.0.1:10251/metrics | head"
     if [ $? -ne 0 ];then echo "启动scheduler失败，退出脚本";exit 1;fi
 
-    echo "查看metric"
-    curl -s http://127.0.0.1:10251/metrics | head
   done
 
 # 查看当前的leader
 echo "========查看当前的leader========="
 kubectl get endpoints kube-scheduler \
-  --namespace=kube-system \
-  -o yaml
+--namespace=kube-system \
+-o yaml
 if [ $? -ne 0 ];then echo "查看scheduler的leader失败，退出脚本";exit 1;fi

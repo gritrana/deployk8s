@@ -1,3 +1,5 @@
+date
+
 echo "第5步，部署集群环境"
 ./deployenv.sh
 if [ $? -ne 0 ]
@@ -131,6 +133,7 @@ else
   echo "10.6部署kube-proxy成功"
   echo -e
 fi
+echo "第10步，部署k8s全家桶成功了"
 
 echo "k8s集群部署完成了，使用kubectl get nodes验证一下"
 

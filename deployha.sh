@@ -52,14 +52,16 @@ for master_ip in ${MASTER_IPS[@]}
     scp haproxy.cfg root@${master_ip}:/etc/haproxy/
 
     echo "启动haproxy服务"
-    ssh root@${master_ip} "systemctl enable haproxy
-                           mkdir -p /var/lib/haproxy
-                           systemctl restart haproxy
-                           systemctl status haproxy | grep Active
-                           netstat -lnpt | grep haproxy"
+    ssh root@${master_ip} "
+      mkdir -p /var/lib/haproxy
+      systemctl enable haproxy
+      systemctl restart haproxy
+      echo 'wait 3s for haproxy up'
+      sleep 3
+      systemctl status haproxy | grep Active
+      netstat -lnpt | grep haproxy"
     if [ $? -ne 0 ];then echo "启动haproxy服务失败，退出脚本";exit 1;fi
   done
-
 
 # 编译keepalived
 echo "=======编译keepalived======="
@@ -173,11 +175,13 @@ for (( i=0; i < 3; i++ ))
   do
     echo ">>> ${MASTER_IPS[i]}"
     echo "分发keepalived二进制"
-    ssh root@${MASTER_IPS[i]} "if [ -f /usr/local/bin/keepalived ];then
-                               systemctl stop keepalived
-                               rm -f /usr/local/bin/keepalived
-                               fi"
-    scp keepalived-2.0.6/bin/keepalived root@${MASTER_IPS[i]}:/usr/local/bin/
+    ssh root@${MASTER_IPS[i]} "
+      if [ -f /usr/local/bin/keepalived ];then
+      systemctl stop keepalived
+      rm -f /usr/local/bin/keepalived
+      fi"
+    scp keepalived-2.0.6/bin/keepalived \
+      root@${MASTER_IPS[i]}:/usr/local/bin/
 
     echo "分发keepalived的systemd unit文件"
     scp keepalived.service \
@@ -198,13 +202,24 @@ for (( i=0; i < 3; i++ ))
     fi
 
     echo "启动keepalived服务，检查服务"
-    ssh root@${MASTER_IPS[i]} "systemctl daemon-reload
-                               systemctl enable keepalived
-                               systemctl restart keepalived
-                               systemctl status keepalived \
-                               | grep Active
-                               /usr/sbin/ip addr show ${VIP_IF}
-                               ping -c 1 ${MASTER_VIP}"
+    ssh root@${MASTER_IPS[i]} "
+      systemctl daemon-reload
+      systemctl enable keepalived
+      systemctl restart keepalived"
+
+    echo "验证keepalived服务"
+    if [ $i -eq 0 ]
+    then
+        echo 'wait 10s for setting vip'
+        sleep 10
+    else
+        echo 'wait 3s for keepalived up'
+        sleep 3
+    fi
+    ssh root@${MASTER_IPS[i]} "
+      systemctl status keepalived | grep Active
+      /usr/sbin/ip addr show ${VIP_IF}
+      ping -c 3 ${MASTER_VIP}"
     if [ $? -ne 0 ];then echo "启动keepalived服务失败，退出脚本";exit 1;fi
   done
 

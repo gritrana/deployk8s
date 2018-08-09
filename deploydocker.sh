@@ -38,7 +38,7 @@ StartLimitInterval=60s
 [Install]
 WantedBy=multi-user.target
 EOF
-ls docker.service
+cat docker.service
 
 # 分发docker systemd service文件和启动
 echo "========分发docker systemd service文件和启动========"
@@ -49,13 +49,16 @@ for node_ip in ${NODE_IPS[@]}
     scp docker.service root@${node_ip}:/usr/lib/systemd/system/
 
     echo "启动docker"
-    ssh root@${node_ip} "systemctl stop firewalld
-                         systemctl disable firewalld
-                         systemctl daemon-reload
-                         systemctl enable docker
-                         systemctl restart docker
-                         systemctl status docker | grep Active
-                         /usr/sbin/ip addr show flannel.1
-                         /usr/sbin/ip addr show docker0"
+    ssh root@${node_ip} "
+      systemctl stop firewalld
+      systemctl disable firewalld
+      systemctl daemon-reload
+      systemctl enable docker
+      systemctl restart docker
+      echo 'wait 3s for docker up'
+      sleep 3
+      systemctl status docker | grep Active
+      /usr/sbin/ip addr show flannel.1
+      /usr/sbin/ip addr show docker0"
     if [ $? -ne 0 ];then echo "启动docker失败，退出脚本";exit 1;fi
   done

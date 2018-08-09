@@ -43,10 +43,13 @@ EOF
 ls getlog-master.sh
 
 echo "======验证StrictHostKeyChecking======"
+if [ -f ~/.ssh/known_hosts ]; then
+rm -rf ~/.ssh/known_hosts
+fi
 for ip in ${MASTER_NODE_IPS[@]}
   do
     echo ">>> ${ip}"
-    ssh root@${ip} echo "should skip host authenticity"
+    ssh root@${ip} echo "skip host authenticity"
   done
 if [ $? -ne 0 ];then echo "验证失败，退出脚本";exit 1;fi
 

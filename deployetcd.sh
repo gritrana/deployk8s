@@ -26,7 +26,7 @@ cat > etcd-csr.json <<EOF
   ]
 }
 EOF
-ls etcd-csr.json
+cat etcd-csr.json
 
 # 创建etcd证书和私钥
 echo "=========创建etcd证书和私钥========"
@@ -58,7 +58,7 @@ cat > etcdctl-csr.json <<EOF
   ]
 }
 EOF
-ls etcdctl-csr.json
+cat etcdctl-csr.json
 
 # 创建etcdctl证书和私钥
 echo "=========创建etcdctl证书和私钥========"
@@ -107,7 +107,7 @@ LimitNOFILE=65536
 [Install]
 WantedBy=multi-user.target
 EOF
-ls etcd.service.template
+cat etcd.service.template
 
 # 根据模板创建各systemd unit文件
 echo "==========根据模板创建各systemd unit文件========="
@@ -117,8 +117,8 @@ for (( i=0; i < 3; i++ ))
     sed -e "s/##NODE_NAME##/${ETCD_NAMES[i]}/" \
         -e "s/##NODE_IP##/${MASTER_IPS[i]}/" \
            etcd.service.template > etcd-${MASTER_IPS[i]}.service
+    cat etcd-${MASTER_IPS[i]}.service
   done
-ls *.service
 
 # 分发并启动etcd
 echo "=========分发并启动etcd=========="
@@ -126,10 +126,11 @@ for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
     echo "分发etcd"
-    ssh root@${master_ip} "if [ -f /usr/local/bin/etcd ];then
-                           systemctl stop etcd
-                           rm -f /usr/local/bin/etcd
-                           fi"
+    ssh root@${master_ip} "
+      if [ -f /usr/local/bin/etcd ];then
+      systemctl stop etcd
+      rm -f /usr/local/bin/etcd
+      fi"
     scp etcd-v3.3.8-linux-amd64/etcd root@${master_ip}:/usr/local/bin/
     
     echo "分发etcd证书和私钥"
@@ -141,14 +142,13 @@ for master_ip in ${MASTER_IPS[@]}
       root@${master_ip}:/usr/lib/systemd/system/etcd.service
     
     echo "启动etcd，首次启动这里会卡一段时间，不过不要紧"
-    ssh root@${master_ip} "mkdir -p /var/lib/etcd
-                           systemctl daemon-reload
-                           systemctl enable etcd
-                           systemctl start etcd &"
+    ssh root@${master_ip} "
+      mkdir -p /var/lib/etcd
+      systemctl daemon-reload
+      systemctl enable etcd
+      systemctl start etcd &
+      systemctl status etcd | grep Active"
     if [ $? -ne 0 ];then echo "启动etcd失败，退出脚本";exit 1;fi
-
-    echo "检查启动结果"
-    ssh root@${master_ip} "systemctl status etcd | grep Active"
   done
 
 # 分发etcdctl并验证etcd
@@ -165,12 +165,13 @@ for master_node_ip in ${MASTER_NODE_IPS[@]}
     scp etcdctl*.pem root@${master_node_ip}:/etc/etcdctl/cert/
 
     echo "${master_node_ip}验证etcd"
-    ssh root@${master_node_ip} "ETCDCTL_API=3 etcdctl \
-                                --endpoints=${ETCD_ENDPOINTS} \
-                                --cacert=/etc/kubernetes/cert/ca.pem \
-                                --cert=/etc/etcdctl/cert/etcdctl.pem \
-                                --key=/etc/etcdctl/cert/etcdctl-key.pem \
-                                endpoint health"
+    ssh root@${master_node_ip} "
+      ETCDCTL_API=3 etcdctl \
+      --endpoints=${ETCD_ENDPOINTS} \
+      --cacert=/etc/kubernetes/cert/ca.pem \
+      --cert=/etc/etcdctl/cert/etcdctl.pem \
+      --key=/etc/etcdctl/cert/etcdctl-key.pem \
+      endpoint health"
     if [ $? -ne 0 ];then echo "分发etcdctl失败，退出脚本";exit 1;fi
   done
 

@@ -26,7 +26,7 @@ cat > kube-controller-manager-csr.json <<EOF
     ]
 }
 EOF
-ls kube-controller-manager-csr.json
+cat kube-controller-manager-csr.json
 
 # 生成controller-manager证书和私钥
 echo "========生成controller-manager证书和私钥========"
@@ -58,6 +58,8 @@ kubectl config set-context system:kube-controller-manager \
 
 kubectl config use-context system:kube-controller-manager \
   --kubeconfig=kube-controller-manager.kubeconfig
+cat kube-controller-manager.kubeconfig
+
 
 # 创建controller-manager systemd unit文件
 echo "=========创建controller-manager systemd unit文件========="
@@ -97,7 +99,7 @@ RestartSec=60
 [Install]
 WantedBy=multi-user.target
 EOF
-ls kube-controller-manager.service
+cat kube-controller-manager.service
 
 # 分发controller-manager及启动
 echo "=========分发controller-manager及启动========="
@@ -127,23 +129,26 @@ for master_ip in ${MASTER_IPS[@]}
       root@${master_ip}:/usr/lib/systemd/system/
 
     echo "启动kube-controller-manager服务"
-    ssh root@${master_ip} \
-      "systemctl daemon-reload
+    ssh root@${master_ip} "
+       mkdir -p /var/log/kubernetes
+       systemctl daemon-reload
        systemctl enable kube-controller-manager
        systemctl start kube-controller-manager
+       echo 'wait 5s for controller-mananger up'
+       sleep 5
        systemctl status kube-controller-manager | grep Active
-       netstat -lnpt | grep kube-con"
+       netstat -lnpt | grep kube-con
+       curl -s \
+       --cacert /etc/kubernetes/cert/ca.pem \
+       https://127.0.0.1:10252/metrics | head
+       "
     if [ $? -ne 0 ];then echo "启动controller-manager失败，退出脚本";exit 1;fi
 
-    echo "查看metric"
-    curl -s \
-         --cacert /etc/kubernetes/cert/ca.pem \
-         https://127.0.0.1:10252/metrics | head
   done
 
 # 查看当前的leader
 echo "========查看当前的leader========="
 kubectl get endpoints kube-controller-manager \
-  --namespace=kube-system \
-  -o yaml
+--namespace=kube-system \
+-o yaml
 if [ $? -ne 0 ];then echo "查看controller-manager的leader失败，退出脚本";exit 1;fi

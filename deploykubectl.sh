@@ -20,6 +20,7 @@ cat > admin-csr.json <<EOF
   ]
 }
 EOF
+cat admin-csr.json
 
 # 生成kubectl证书和私钥
 echo "=======生成kubectl证书和私钥========"
@@ -42,7 +43,7 @@ ls ~/.kube/
 echo "========分发kubectl======="
 sudo cp kubernetes/server/bin/kubectl /usr/local/bin/
 if [ $? -ne 0 ];then echo "分发kubectl失败，退出脚本";exit 1;fi
-ls /usr/local/bin/
+ls /usr/local/bin/kubectl
 
 # 创建kubeconfig文件
 # --certificate-authority参数没法把~/.kube解析成相对路径
@@ -65,6 +66,7 @@ kubectl config set-context kubernetes \
 
 # 设置默认上下文
 kubectl config use-context kubernetes
+cat ~/.kube/config
 
 : '
 没有必要把kubectl部署到集群中

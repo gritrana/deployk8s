@@ -20,7 +20,7 @@ cat > kube-proxy-csr.json <<EOF
     ]
 }
 EOF
-ls kube-proxy-csr.json
+cat kube-proxy-csr.json
 
 # 创建kube-proxy证书和私钥
 echo "=======创建kube-proxy证书和私钥======="
@@ -49,7 +49,7 @@ kubectl config set-context default \
 --kubeconfig=kube-proxy.kubeconfig
 
 kubectl config use-context default --kubeconfig=kube-proxy.kubeconfig
-ls kube-proxy.kubeconfig
+cat kube-proxy.kubeconfig
 
 # 创建kube-proxy配置模板
 echo "=========创建kube-proxy配置模板========"
@@ -76,7 +76,7 @@ for ((i=0; i < 3; i++))
         -e "s/##NODE_IP##/${NODE_IPS[i]}/" \
         kube-proxy.config.yaml.template > \
         kube-proxy-${NODE_IPS[i]}.config.yaml
-    ls kube-proxy-${NODE_IPS[i]}.config.yaml
+    cat kube-proxy-${NODE_IPS[i]}.config.yaml
   done
 
 # 创建kube-proxy systemd service文件
@@ -102,7 +102,7 @@ LimitNOFILE=65536
 [Install]
 WantedBy=multi-user.target
 EOF
-ls kube-proxy.service
+cat kube-proxy.service
 
 # 分发kube-proxy并启动
 echo "=======分发kube-proxy并启动========"
@@ -110,10 +110,11 @@ for node_ip in ${NODE_IPS[@]}
   do
     echo ">>> ${node_ip}"
     echo "分发kube-proxy二进制文件"
-    ssh root@${node_ip} "if [ -f /usr/local/bin/kube-proxy ];then
-                         systemctl stop kube-proxy
-                         rm -f /usr/local/bin/kube-proxy
-                         fi"
+    ssh root@${node_ip} "
+      if [ -f /usr/local/bin/kube-proxy ];then
+      systemctl stop kube-proxy
+      rm -f /usr/local/bin/kube-proxy
+      fi"
     scp kubernetes/server/bin/kube-proxy \
       root@${node_ip}:/usr/local/bin/
     
@@ -134,12 +135,16 @@ for node_ip in ${NODE_IPS[@]}
       root@${node_ip}:/usr/lib/systemd/system/
 
     echo "启动kube-proxy"
-    ssh root@${node_ip} "mkdir -p /var/lib/kube-proxy
-                         systemctl daemon-reload
-                         systemctl enable kube-proxy
-                         systemctl start kube-proxy
-                         systemctl status kube-proxy \
-                         | grep Active
-                         netstat -lnpt | grep kube-pro"
+    ssh root@${node_ip} "
+      mkdir -p /var/lib/kube-proxy
+      mkdir -p /var/log/kubernetes
+      systemctl daemon-reload
+      systemctl enable kube-proxy
+      systemctl start kube-proxy
+      echo 'wait 5s for kube-proxy up'
+      sleep 5
+      systemctl status kube-proxy | grep Active
+      netstat -lnpt | grep kube-pro"
+
     if [ $? -ne 0 ];then echo "启动kube-proxy失败，退出脚本";exit 1;fi
   done

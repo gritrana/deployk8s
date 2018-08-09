@@ -33,7 +33,7 @@ cat > kubernetes-csr.json <<EOF
   ]
 }
 EOF
-ls kubernetes-csr.json
+cat kubernetes-csr.json
 
 # 创建kubernetes证书和私钥
 echo "=========创建kubernetes证书和私钥========"
@@ -59,7 +59,7 @@ resources:
               secret: ${ENCRYPTION_KEY}
       - identity: {}
 EOF
-ls encryption-config.yaml
+cat encryption-config.yaml
 
 # 创建kube-apiserver systemd unit模板
 echo "=======# 创建kube-apiserver systemd unit模板======="
@@ -112,7 +112,7 @@ LimitNOFILE=65536
 [Install]
 WantedBy=multi-user.target
 EOF
-ls kube-apiserver.service.template
+cat kube-apiserver.service.template
 
 # 创建kube-apiserver systemd unit文件
 echo "=======创建kube-apiserver systemd unit文件======="
@@ -129,11 +129,12 @@ echo "========分发并启动kube-apiserver======="
 for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
-    echo "分发apiserver二进制"
-    ssh root@${master_ip} "if [ -f /usr/local/bin/kube-apiserver ];then
-                           systemctl stop kube-apiserver
-                           rm -f /usr/local/bin/kube-apiserver
-                           fi"
+    echo "分发apiserver二进制（这里有时也会卡一下，停止kube-apiserver需要时间）"
+    ssh root@${master_ip} "
+      if [ -f /usr/local/bin/kube-apiserver ];then
+      systemctl stop kube-apiserver
+      rm -f /usr/local/bin/kube-apiserver
+      fi"
     scp kubernetes/server/bin/kube-apiserver root@${master_ip}:/usr/local/bin/
 
     echo "分发证书和私钥"
@@ -148,20 +149,26 @@ for master_ip in ${MASTER_IPS[@]}
       root@${master_ip}:/usr/lib/systemd/system/kube-apiserver.service
 
     echo "启动kube-apiserver服务"
-    ssh root@${master_ip} "systemctl daemon-reload
-                           systemctl enable kube-apiserver
-                           systemctl start kube-apiserver
-                           systemctl status kube-apiserver | grep Active
-                           netstat -lnpt | grep kube-api"
-    if [ $? -ne 0 ];then echo "启动kube-apiserver失败，退出脚本";exit 1;fi
+    ssh root@${master_ip} "
+      mkdir -p /var/log/kubernetes
+      systemctl daemon-reload
+      systemctl enable kube-apiserver
+      systemctl start kube-apiserver
+      echo 'wait 5s for apiserver up'
+      sleep 5
+      systemctl status kube-apiserver | grep Active
+      netstat -lnpt | grep kube-api"
 
     echo "查看kube-apiserver写入etcd的数据"
-    ssh root@${master_ip} "ETCDCTL_API=3 etcdctl \
-                          --endpoints=${ETCD_ENDPOINTS} \
-                          --cacert=/etc/kubernetes/cert/ca.pem \
-                          --cert=/etc/etcdctl/cert/etcdctl.pem \
-                          --key=/etc/etcdctl/cert/etcdctl-key.pem \
-                          get /registry/ --prefix --keys-only"
+    ssh root@${master_ip} "
+      ETCDCTL_API=3 etcdctl \
+      --endpoints=${ETCD_ENDPOINTS} \
+      --cacert=/etc/kubernetes/cert/ca.pem \
+      --cert=/etc/etcdctl/cert/etcdctl.pem \
+      --key=/etc/etcdctl/cert/etcdctl-key.pem \
+      get /registry/ --prefix --keys-only"
+
+    if [ $? -ne 0 ];then echo "启动kube-apiserver失败，退出脚本";exit 1;fi
   done
 
 # 查看集群信息
@@ -176,11 +183,13 @@ kubectl get all --all-namespaces
 echo "========查看各组件状态========="
 kubectl get componentstatuses
 
+if [ $? -ne 0 ];then echo "执行kubectl命令失败，退出脚本";exit 1;fi
+
 # 授予 kubernetes 证书访问 kubelet API 的权限
 echo "========授予 kubernetes 证书访问 kubelet API 的权限========="
 kubectl create clusterrolebinding \
-  kube-apiserver:kubelet-apis \
-  --clusterrole=system:kubelet-api-admin \
-  --user kubernetes
+kube-apiserver:kubelet-apis \
+--clusterrole=system:kubelet-api-admin \
+--user kubernetes
+echo "ignore rolebindings alreadyExists"
 
-if [ $? -ne 0 ];then echo "执行kubectl命令失败，退出脚本";exit 1;fi
