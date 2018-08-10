@@ -18,10 +18,10 @@ cat > kube-controller-manager-csr.json <<EOF
     "names": [
         {
             "C": "CN",
-            "ST": "BeiJing",
-            "L": "BeiJing",
-            "O": "system:kube-controller-manager",
-            "OU": "4Paradigm"
+            "ST": "Shanghai",
+            "L": "Shanghai",
+            "O": "k8s",
+            "OU": "kube-controller-manager"
         }
     ]
 }

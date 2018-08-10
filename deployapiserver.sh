@@ -25,10 +25,10 @@ cat > kubernetes-csr.json <<EOF
   "names": [
     {
       "C": "CN",
-      "ST": "BeiJing",
-      "L": "BeiJing",
+      "ST": "Shanghai",
+      "L": "Shanghai",
       "O": "k8s",
-      "OU": "4Paradigm"
+      "OU": "kube-apiserver"
     }
   ]
 }

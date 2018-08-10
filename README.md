@@ -84,7 +84,151 @@ curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 ./deployapp.sh | tee deployapp.log
 ```
 
-## Document
-每一步对应的说明。
+## Document  
+
+### 证书签名请求与RBAC的对应关系  
+该命令`kubectl get clusterrolebindings -o wide`可以得到下面这个表格  
+可以看到kubernetes预留的subeject被绑定到哪个角色了。subjects就是下面表格中的usr/group/serviceaccounts
+| cluster-role-binding | cluster-role | user | group | service-accounts |
+| ------ | ------ | ------ | ------ | ------ |
+| cluster-admin | cluster-admin |  | system:masters |  |
+| system:kube-controller-manager | system:kube-controller-manager | system:kube-controller-manager |  |  |
+| system:kube-scheduler | system:kube-scheduler | system:kube-scheduler |  |  |
+| system:node | system:node |  |  |  |
+| system:node-proxier | system:node-proxier | system:kube-proxy |  |  |
+user对应的是证书签名请求中的CN字段的值，group对应的是证书签名请求中的names.O字段。
+客户端访问apiserver的时候，先双向验证(authentication)，客户端解码服务器的证书验证ip和根证书，服务器解码客户端的证书然后只验证根证书。
+这样tls连接就算建立起来了。接下来服务器再把客户端证书中的CN字段和names.O字段拿过去授权(authorization)，把授权结果返回给客户端。
+这是个简化流程，可以这么理解。
 
 
+* admin的证书签名请求  
+因为绑定到cluster-admin（角色）的system:masters(subjects)是个group，  
+所以names.O字段的是system:masters，其他随便写(CN字段我是为了方便演示才写的admin，其实它也是可以随便写的)。
+```sh
+{
+    "CN": "admin",
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names": [
+        {
+            "C": "CN",
+            "ST": "BeiJing",
+            "L": "BeiJing",
+            "O": "system:masters",
+            "OU": "123"
+        }
+    ]
+}
+```
+
+* kube-controller-manager的证书签名请求  
+因为绑定到system:kube-controller-manager（角色）的system:kube-controller-manager(subjects)是个user，  
+所以CN字段的是system:kube-controller-manager，其他随便写。
+```sh
+{
+    "CN": "system:kube-controller-manager",
+    "hosts": [
+        "127.0.0.1",
+        "${MASTER_IPS[0]}",
+        "${MASTER_IPS[1]}",
+        "${MASTER_IPS[2]}"
+    ],
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names": [
+        {
+            "C": "CN",
+            "ST": "BeiJing",
+            "L": "BeiJing",
+            "O": "123",
+            "OU": "xyz"
+        }
+    ]
+}
+```
+
+* kube-scheduler的证书签名请求  
+因为绑定到system:kube-scheduler(角色)的system:kube-scheduler(subjects)是个user，  
+所以CN字段的是system:kube-scheduler，其他随便写。
+```sh
+{
+    "CN": "system:kube-scheduler",
+    "hosts": [
+        "127.0.0.1",
+        "${MASTER_IPS[0]}",
+        "${MASTER_IPS[1]}",
+        "${MASTER_IPS[2]}"
+    ],
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names": [
+        {
+            "C": "CN",
+            "ST": "Shanghai",
+            "L": "Shanghai",
+            "O": "123",
+            "OU": "xyz"
+        }
+    ]
+}
+```
+
+* kubelet的证书签名请求方式1  
+使用bootstrap，kubernetes v1.11.0已经预定义了system:node-bootstrap角色，但是没有预定义角色绑定，需要自己去创建。
+这种方式我已经在deploykubelet.sh.bak里面实现了。  
+
+* kubelet的证书签名请求方式2  
+因为bootstrap搞的太复杂，都是一家人还搞什么区别对待搞什么24小时token还approve什么的。  
+没有找到kubelet相关的角色绑定以及角色，看一些文章说预定义的system:node是留给kubelet用的，可是kubernetes v1.11.0预定义的system:node角色绑定
+没有实质性的subjects。  
+所以我先暂时用system:masters吧，这个subject是预留给管理员的（上面的admin证书签名请求可以看到）  
+这个可以参照上面的admin证书签名请求了，也就是把system:masters作为names.O的值，其他随便写。
+```sh
+{
+    "CN": "kubelet",
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names": [
+        {
+            "C": "CN",
+            "ST": "Shanghai",
+            "L": "Shanghai",
+            "O": "system:masters",
+            "OU": "kubelet"
+        }
+    ]
+}
+```
+
+* kube-proxy的证书签名请求  
+因为绑定到system:node-proxier(角色)的system:kube-proxy(subject)是个user，（这不一致的名字一看就知道不是同一个人开发的）  
+所以CN字段的是system:kube-proxy，其他随便写。
+```sh
+{
+    "CN": "system:kube-proxy",
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names": [
+        {
+            "C": "CN",
+            "ST": "Shanghai",
+            "L": "Shanghai",
+            "O": "123",
+            "OU": "xyz"
+        }
+    ]
+}
+```
+
+* 一些插件还没搞好

@@ -20,8 +20,8 @@ cat > kube-scheduler-csr.json <<EOF
             "C": "CN",
             "ST": "BeiJing",
             "L": "BeiJing",
-            "O": "system:kube-scheduler",
-            "OU": "4Paradigm"
+            "O": "k8s",
+            "OU": "kube-scheduler"
         }
     ]
 }
