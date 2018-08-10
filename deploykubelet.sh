@@ -4,7 +4,7 @@ source env.sh
 echo "=========创建kubelet证书签名请求========"
 cat > kubelet-csr.json <<EOF
 {
-    "CN": "system:masters", //暂时使用最高权限
+    "CN": "kubelet",
     "key": {
         "algo": "rsa",
         "size": 2048
@@ -14,8 +14,8 @@ cat > kubelet-csr.json <<EOF
             "C": "CN",
             "ST": "Shanghai",
             "L": "Shanghai",
-            "O": "k8s", //随便写
-            "OU": "kubelet" //随便写
+            "O": "system:masters",
+            "OU": "kubelet"
         }
     ]
 }
