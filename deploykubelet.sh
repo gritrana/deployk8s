@@ -1,51 +1,59 @@
 source env.sh
 
-# 分发一份kubeadm到本地
-echo "=======分发一份kubeadm到本地========="
-sudo cp kubernetes/server/bin/kubeadm /usr/local/bin/
-if [ $? -ne 0 ];then echo "分发kubeadm失败，退出脚本";exit 1;fi
-ls /usr/local/bin/kubeadm
+# 创建kubelet证书签名请求
+echo "=========创建kubelet证书签名请求========"
+cat > kubelet-csr.json <<EOF
+{
+    "CN": "system:masters", //暂时使用最高权限
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names": [
+        {
+            "C": "CN",
+            "ST": "Shanghai",
+            "L": "Shanghai",
+            "O": "k8s", //随便写
+            "OU": "kubelet" //随便写
+        }
+    ]
+}
+EOF
+cat kubelet-csr.json
 
-# 创建kubelet bootstrap kubeconfig文件
-echo "========创建kubelet bootstrap kubeconfig文件======="
-for ((i=0; i<3; i++))
-  do
-    echo ">>> ${NODE_IPS[i]}"
-    echo "创建token"
-    export BOOTSTRAP_TOKEN=$(kubeadm token create \
-      --description kubelet-bootstrap-token \
-      --groups system:bootstrappers:${NODE_NAMES[i]} \
-      --kubeconfig ~/.kube/config)
-    
-    echo "创建kubeconfig"
-    # 设置集群参数
-    kubectl config set-cluster kubernetes \
-    --certificate-authority=/etc/kubernetes/cert/ca.pem \
-    --server=${KUBE_APISERVER} \
-    --kubeconfig=kubelet-bootstrap-${NODE_IPS[i]}.kubeconfig
+# 创建kubelet证书和私钥
+echo "=======创建kubelet证书和私钥======="
+cfssl gencert \
+-ca=ca.pem \
+-ca-key=ca-key.pem \
+-config=ca-config.json \
+-profile=kubernetes kubelet-csr.json | cfssljson -bare kubelet
+ls kubelet*.pem
 
-    # 设置客户端认证参数
-    kubectl config set-credentials kubelet-bootstrap \
-    --token=${BOOTSTRAP_TOKEN} \
-    --kubeconfig=kubelet-bootstrap-${NODE_IPS[i]}.kubeconfig
+# 创建kubelet kubeconfig文件
+echo "=========创建kubelet kubeconfig文件========="
+# 配置要访问的集群cluster1（ip和证书）
+kubectl config set-cluster cluster1 \
+--certificate-authority=/etc/kubernetes/cert/ca.pem \
+--server=${KUBE_APISERVER} \
+--kubeconfig=kubelet.kubeconfig
 
-    # 设置上下文参数
-    kubectl config set-context default \
-    --cluster=kubernetes \
-    --user=kubelet-bootstrap \
-    --kubeconfig=kubelet-bootstrap-${NODE_IPS[i]}.kubeconfig
+# 配置kubelet1用户（证书和私钥）
+kubectl config set-credentials kubelet1 \
+--client-certificate=/etc/kubernetes/cert/kubelet.pem \
+--client-key=/etc/kubernetes/cert/kubelet-key.pem \
+--kubeconfig=kubelet.kubeconfig
 
-    # 设置默认上下文
-    kubectl config use-context default \
-    --kubeconfig=kubelet-bootstrap-${NODE_IPS[i]}.kubeconfig
+# 配置context1
+kubectl config set-context context1 \
+--cluster=cluster1 \
+--user=kubelet1 \
+--kubeconfig=kubelet.kubeconfig
 
-    cat kubelet-bootstrap-${NODE_IPS[i]}.kubeconfig
-  done
-
-# 显示刚刚创建的bootstrap token
-echo "=========显示刚刚创建的bootstrap token========="
-kubeadm token list --kubeconfig ~/.kube/config
-if [ $? -ne 0 ];then echo "显示kubeadm token失败，退出脚本";exit 1;fi
+# 设置context1为当前的context
+kubectl config use-context context1 --kubeconfig=kubelet.kubeconfig
+cat kubelet.kubeconfig
 
 # 创建kubelet参数配置模板文件
 echo "========创建kubelet参数配置模板文件======="
@@ -111,7 +119,6 @@ Requires=docker.service
 [Service]
 WorkingDirectory=/var/lib/kubelet
 ExecStart=/usr/local/bin/kubelet \\
---bootstrap-kubeconfig=/etc/kubernetes/kubelet-bootstrap.kubeconfig\\
 --cert-dir=/etc/kubernetes/cert \\
 --kubeconfig=/etc/kubernetes/kubelet.kubeconfig \\
 --config=/etc/kubernetes/kubelet.config.json \\
@@ -141,81 +148,6 @@ for ((i=0; i<3; i++))
     cat kubelet-${NODE_IPS[i]}.service
   done
 
-# 创建cluster role binding
-#kubectl create clusterrolebinding kubelet-bootstrap --clusterrole=system:node-bootstrapper --group=system:bootstrappers
-
-# 创建csr cluster role binding
-cat > kubelet-crb.yaml <<EOF
-# kubelet-bootstarp
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: kubelet-bootstrap
-subjects:
-  - kind: Group
-    name: system:bootstrappers
-    apiGroup: rbac.authorization.k8s.io
-roleRef:
-  kind: ClusterRole
-  name: system:node-bootstrapper
-  apiGroup: rbac.authorization.k8s.io
----
-# Approve all CSRs for the group "system:bootstrappers"
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: auto-approve-csrs-for-group
-subjects:
-  - kind: Group
-    name: system:bootstrappers
-    apiGroup: rbac.authorization.k8s.io
-roleRef:
-  kind: ClusterRole
-  name: system:certificates.k8s.io:certificatesigningrequests:nodeclient
-  apiGroup: rbac.authorization.k8s.io
----
-# To let a node of the group "system:nodes" renew its own credentials
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: node-client-cert-renewal
-subjects:
-  - kind: Group
-    name: system:nodes
-    apiGroup: rbac.authorization.k8s.io
-roleRef:
-  kind: ClusterRole
-  name: system:certificates.k8s.io:certificatesigningrequests:selfnodeclient
-  apiGroup: rbac.authorization.k8s.io
----
-# A ClusterRole which instructs the CSR approver to approve a node requesting a
-# serving cert matching its client cert.
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: approve-node-server-renewal-csr
-rules:
-  - apiGroups: ["certificates.k8s.io"]
-    resources: ["certificatesigningrequests/selfnodeserver"]
-    verbs: ["create"]
----
-# To let a node of the group "system:nodes" renew its own server credentials
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: node-server-cert-renewal
-subjects:
-  - kind: Group
-    name: system:nodes
-    apiGroup: rbac.authorization.k8s.io
-roleRef:
-  kind: ClusterRole
-  name: approve-node-server-renewal-csr
-  apiGroup: rbac.authorization.k8s.io
-EOF
-cat kubelet-crb.yaml
-kubectl apply -f kubelet-crb.yaml
-
 # 分发并启动kubelet
 echo "=========分发并启动kubelet======="
 for node_ip in ${NODE_IPS[@]}
@@ -229,10 +161,14 @@ for node_ip in ${NODE_IPS[@]}
       fi"
     scp kubernetes/server/bin/kubelet root@${node_ip}:/usr/local/bin/
 
-    echo "分发kubelet bootstrap kubeconfig文件"
+    echo "分发kubelet证书和私钥"
+    ssh root@${node_ip} "mkdir -p /etc/kubernetes/cert"
+    scp kubelet*.pem root@${node_ip}:/etc/kubernetes/cert/
+
+    echo "分发kubelet kubeconfig文件"
     ssh root@${node_ip} "mkdir -p /etc/kubernetes"
-    scp kubelet-bootstrap-${node_ip}.kubeconfig \
-      root@${node_ip}:/etc/kubernetes/kubelet-bootstrap.kubeconfig
+    scp kubelet.kubeconfig \
+      root@${node_ip}:/etc/kubernetes/kubelet.kubeconfig
 
     echo "分发kubelet参数配置文件"
     scp kubelet.config-${node_ip}.json \
