@@ -2,9 +2,12 @@
 
 ## 感谢
 感谢 https://github.com/opsnull/follow-me-install-kubernetes-cluster 作者及其贡献者。  
-它是3个节点的集群，为了更清楚的认识k8s，我这里搞了3个master和3个node，那个dev是用来分发的或者说是用来操作集群的。  
+它是3个节点的集群，为了更清楚的认识k8s。
+我这里搞了3个master和3个node，那个dev是用来分发的或者说是用来操作集群的。  
 如果部署过程中遇到什么问题可以提issues也可以加这个QQ群95786324  
-改进和pull request将会被欢迎
+
+注意：当前分支部署的是kubernetes v1.11.0，kubernetes版本更新很快1天1个版本，高版本与低版本会有比较大的区别，问题也总是出在上面。  
+欢迎issues和pull request
 
 ## Quick start
 ### 第1步， 本地开发机  
@@ -86,9 +89,10 @@ curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 
 ## Document  
 
-### 证书签名请求与RBAC的对应关系  
+### 1.证书签名请求与RBAC的对应关系  
 该命令`kubectl get clusterrolebindings -o wide`可以得到下面这个表格  
-可以看到kubernetes预留的subeject被绑定到哪个角色了。subjects就是下面表格中的usr/group/serviceaccounts
+可以看到kubernetes预留的subjects被绑定到哪个角色了。subjects就是下面表格中的usr/group/serviceaccounts
+
 | cluster-role-binding | cluster-role | user | group | service-accounts |
 | ------ | ------ | ------ | ------ | ------ |
 | cluster-admin | cluster-admin |  | system:masters |  |
@@ -96,9 +100,10 @@ curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 | system:kube-scheduler | system:kube-scheduler | system:kube-scheduler |  |  |
 | system:node | system:node |  |  |  |
 | system:node-proxier | system:node-proxier | system:kube-proxy |  |  |
-user对应的是证书签名请求中的CN字段的值，group对应的是证书签名请求中的names.O字段。
-客户端访问apiserver的时候，先双向验证(authentication)，客户端解码服务器的证书验证ip和根证书，服务器解码客户端的证书然后只验证根证书。
-这样tls连接就算建立起来了。接下来服务器再把客户端证书中的CN字段和names.O字段拿过去授权(authorization)，把授权结果返回给客户端。
+
+user对应的是证书签名请求中的CN字段的值，group对应的是证书签名请求中的names.O字段。  
+客户端访问apiserver的时候，先双向验证(authentication)，客户端解码服务器的证书验证ip和根证书，服务器解码客户端的证书然后只验证根证书。  
+这样tls连接就算建立起来了。接下来服务器再把客户端证书中的CN字段和names.O字段拿过去授权(authorization)，把授权结果返回给客户端。  
 这是个简化流程，可以这么理解。
 
 
@@ -115,8 +120,8 @@ user对应的是证书签名请求中的CN字段的值，group对应的是证书
     "names": [
         {
             "C": "CN",
-            "ST": "BeiJing",
-            "L": "BeiJing",
+            "ST": "Shanghai",
+            "L": "Shanghai",
             "O": "system:masters",
             "OU": "123"
         }
@@ -143,8 +148,8 @@ user对应的是证书签名请求中的CN字段的值，group对应的是证书
     "names": [
         {
             "C": "CN",
-            "ST": "BeiJing",
-            "L": "BeiJing",
+            "ST": "Shanghai",
+            "L": "Shanghai",
             "O": "123",
             "OU": "xyz"
         }
