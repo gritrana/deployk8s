@@ -95,7 +95,7 @@ curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 
 * 把脚本clone下来：
 ```sh
-git clone git@github.com:xujintao/deployk8s.git
+git clone https://github.com/xujintao/deployk8s.git
 cd deployk8s
 ```
 
