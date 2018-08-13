@@ -23,15 +23,16 @@
 ```sh
 # vagrant box add centos7 path_to_your_centos7
 # 例如：
-vagrant box add D:\Box\CentOS-7-x86_64-Vagrant-1804_02.VirtualBox.box
+vagrant box add centos7 D:\\Box\\CentOS-7-x86_64-Vagrant-1804_02.VirtualBox.box
+
+# 或者：
+vagrant box add centos7 /d/Box/CentOS-7-x86_64-Vagrant-1804_02.VirtualBox.box
 ```
 * 启动开发机(dev)  
 ```sh
 vagrant up dev
 ```
-以后就使用dev来指代开发机了。  
-图方便我已经把不安全的公钥添加到集群机器的/root/.ssh/authorized_keys中了，  
-为了让root能从dev远程登录到集群机器，需要把insecure_private_key弄到dev的~/.ssh/id_rsa中，可以scp，如果使用的是xshell那就用xshell自带的sftp
+以后就使用dev来指代开发机了。
 
 * 启动集群  
 ```sh
@@ -46,13 +47,33 @@ vagrant up node3
 到这一步如果成功了，还是很不容易的，部署工作基本成功了一半。
 
 ### 第4步，git clone  
-好了好了，正式开始了，现在使用你的ssh工具进到dev里面。
-先把脚本clone下来：
+好了好了，正式开始了。
+
+> 注意：这里其实还是蛮复杂的，我建议用xshell。
+> 比如使用xshell登录dev，使用xftp复制insecure_private_key还有curl下载的那几个文件到dev。
+> 我自己就是用的xshell，下面那些命令行是我为了说明过程才写的。
+
+* 使用你的ssh工具登录到dev。  
 ```sh
-git clone git@github.com:xujintao/deployk8s.git
-cd deployk8s
+ssh -i ~/.vagrant.d/insecure_private_key \
+vagrant@192.168.0.2
 ```
-然后再准备几样东西（haproxy以及docker我已经内置在box里面了）：
+
+* 复制insecure_private_key。
+图方便我已经把不安全的公钥添加到集群机器的/root/.ssh/authorized_keys中了，  
+所以为了让root能从dev远程登录到集群机器，**需要把insecure_private_key弄到dev的~/.ssh/id_rsa中**。  
+```sh
+scp -i ~/.vagrant.d/insecure_private_key \
+~/.vagrant.d/insecure_private_key \
+vagrant@192.168.0.2:~/.ssh/id_rsa
+```
+这个id_rsa的权限是644，需要改为600，在dev机中执行：
+```sh
+chmod 600 ~/.ssh/id_rsa
+```
+
+**注意：下面所有的操作都是在dev上进行的**。
+* 准备几样东西（haproxy以及docker我已经内置在box里面了）：
 ```sh
 # 下载cfssl
 curl -O https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
@@ -71,20 +92,29 @@ curl -O https://github.com/coreos/flannel/releases/download/v0.10.0/flannel-v0.1
 # 下载kubernetes v1.11.0
 curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 ```
+
+* 把脚本clone下来：
+```sh
+git clone git@github.com:xujintao/deployk8s.git
+cd deployk8s
+```
+
 最后就开始执行脚本进行部署吧。
 
-### 第5~10步，部署集群  
+### 第5~10步，一键部署集群  
 ```sh
 ./deployk8s.sh 2>&1 | tee deployk8s.log
 ```
-这个部署脚本会打印出日志，通过日志来定位哪里出了问题。
+等大概10分钟  
+如果没什么问题的话，到这里，集群部署就算成功了。如果有问题，可以通过日志来定位哪里出了问题。
+这个步骤可以是可以重复进行的。
 
-### 第11步，预留  
+### 第11步，预留给插件（可选）  
 
-### 第12步，部署自己的应用（这是可选的）  
+### 第12步，部署自己的应用（可选）  
 比如我自己的一个docker镜像：
 ```sh
-./deployapp.sh | tee deployapp.log
+./deployapp.sh
 ```
 
 ## Document  
@@ -102,10 +132,13 @@ curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 | system:node-proxier | system:node-proxier | system:kube-proxy |  |  |
 
 user对应的是证书签名请求中的CN字段的值，group对应的是证书签名请求中的names.O字段。  
-客户端访问apiserver的时候，先双向验证(authentication)，客户端解码服务器的证书验证ip和根证书，服务器解码客户端的证书然后只验证根证书。  
-这样tls连接就算建立起来了。接下来服务器再把客户端证书中的CN字段和names.O字段拿过去授权(authorization)，把授权结果返回给客户端。  
-这是个简化流程，可以这么理解。
+> 客户端访问apiserver的时候，先双向认证(authentication)，客户端解码服务器的证书验证ip和根证书，服务器解码客户端的证书然后只验证根证书。
+没什么问题的话，tls连接就算建立起来了。
 
+> 授权(authorization)是在应用层完成的，基于上面的tls连接，客户端在发http请求的时候会把自己证书中的CN字段和names.O字段打包到http头的kv对中，
+比如authenrization: user=xxx; group=xxx，api服务器收到http请求后把它取出来拿过去授权，授权成功就把rest结果返回给客户端，授权失败就返回Unauthorized。
+
+因为k8s的authentication和authorization花样太多了，这里只是冰山一角的简化流程，可以这么理解。
 
 * admin的证书签名请求  
 因为绑定到cluster-admin（角色）的system:masters(subjects)是个group，  
@@ -185,16 +218,38 @@ user对应的是证书签名请求中的CN字段的值，group对应的是证书
 }
 ```
 
-* kubelet的证书签名请求方式1  
-使用bootstrap，kubernetes v1.11.0已经预定义了system:node-bootstrap角色，但是没有预定义角色绑定，需要自己去创建。
-这种方式我已经在deploykubelet.sh.bak里面实现了。  
+* kubelet的证书签名请求方式1(默认)  
+使用node授权方式，这个不是RBAC授权。
+```sh
+{
+    "CN": "system:node:##NODE_NAME##",
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names": [
+        {
+            "C": "CN",
+            "ST": "Shanghai",
+            "L": "Shanghai",
+            "O": "system:nodes",
+            "OU": "kubelet"
+        }
+    ]
+}
+```
+这里CN必须是system:node:<节点名>，names.O必须是system:nodes。
+根据文档[Using Node Authorization](https://kubernetes.io/docs/reference/access-authn-authz/node/)最后一段的说明，这里我大概翻译一下：
+> kubernetes v1.6的时候，如果api-server启动参数里面的authorization-mode值是RBAC的话，那么启动以后，system:nodes组(subjects)是自动绑定到system:node集群角色的。
+
+> kubernets v1.7的时候，这种上面那种自动绑定(RBAC)被弃用了（虽然被弃用，但是还是能用的，只是提示deprecated），因为node authorization完成了同样的功能而且还能限制secret和configmap的方法权限。如果api-server启动参数里面的authorization-mode值是Node和RBAC的话，那么启动以后，就不会自动创建system:nodes组到system:node集群角色的绑定。意思就是说如果authorization-mode值仅仅是RBAC的话，api-server还是会自动创建这种绑定的。
+
+> 然而到了v1.8的时候，这种绑定就不再自动创建了，说到做到。（如果你去issues里面看，会发现很多人升级到1.8以后kubelet就出问题）。当然了，虽然绑定不存在了，但是system:node集群角色还是在的，这是为了兼容绑定到该角色的其他subjects。  
+
+我这里使用的是v1.11.0，我api-server启动参数里面的authorization-mode值是Node和RBAC，我使用node授权方式来对kubelet进行授权，不使用RBAC授权就不需要system:node集群角色，这个没有毛病。
 
 * kubelet的证书签名请求方式2  
-因为bootstrap搞的太复杂，都是一家人还搞什么区别对待搞什么24小时token还approve什么的。  
-没有找到kubelet相关的角色绑定以及角色，看一些文章说预定义的system:node是留给kubelet用的，可是kubernetes v1.11.0预定义的system:node角色绑定
-没有实质性的subjects。  
-所以我先暂时用system:masters吧，这个subject是预留给管理员的（上面的admin证书签名请求可以看到）  
-这个可以参照上面的admin证书签名请求了，也就是把system:masters作为names.O的值，其他随便写。
+我想了想，对于kubelet我还想使用RBAC，那么我必须自己创建一个集群角色绑定，我懒我连绑定都不想创建，我使用了system:masters这个组  
 ```sh
 {
     "CN": "kubelet",
@@ -213,6 +268,11 @@ user对应的是证书签名请求中的CN字段的值，group对应的是证书
     ]
 }
 ```
+names.O字段的值是system:masters，CN随便写。这个也行的。
+
+* kubelet的证书签名请求方式3  
+因为认证(authentication)用的是bootstrap token，所以kubelet连证书和密钥都不需要创建。
+大佬们起kubelet都是用的bootstrap方式，可是我觉得bootstrap搞的太复杂，都是一家人还搞什么区别对待搞什么24小时token还approve什么的。为了能approve证书签名请求，为2个组创建了4个集群角色绑定，太复杂了。所以这个我照抄的他们的。
 
 * kube-proxy的证书签名请求  
 因为绑定到system:node-proxier(角色)的system:kube-proxy(subject)是个user，（这不一致的名字一看就知道不是同一个人开发的）  
