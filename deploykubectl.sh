@@ -46,7 +46,7 @@ clusters:
 contexts:
 - name: context1
   context:
-    cluster: kubernete1
+    cluster: cluster1
     user: admin
 current-context: context1
 kind: Config
