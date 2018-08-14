@@ -72,8 +72,14 @@ vagrant@192.168.0.2:~/.ssh/id_rsa
 chmod 600 ~/.ssh/id_rsa
 ```
 
-**注意：下面所有的操作都是在dev上进行的**。
-* 准备几样东西（haproxy以及docker我已经内置在box里面了）：
+**注意：下面所有的操作都是在dev上进行的**
+* 把脚本clone下来：
+```sh
+git clone https://github.com/xujintao/deployk8s.git
+cd deployk8s
+```
+
+* 准备几样东西（haproxy以及docker我已经内置在box里面了）到deployk8s目录下
 ```sh
 # 下载cfssl
 curl -O https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
@@ -92,14 +98,6 @@ curl -O https://github.com/coreos/flannel/releases/download/v0.10.0/flannel-v0.1
 # 下载kubernetes v1.11.0
 curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 ```
-
-* 把脚本clone下来：
-```sh
-git clone https://github.com/xujintao/deployk8s.git
-cd deployk8s
-```
-
-最后就开始执行脚本进行部署吧。
 
 ### 第5~10步，一键部署集群  
 ```sh
