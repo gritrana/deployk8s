@@ -1,8 +1,9 @@
 source env.sh
 
 # 配置haproxy模板
+mkdir -p ${HAPROXY_PATH}
 echo "============配置haproxy模板=========="
-cat > haproxy.cfg <<EOF
+cat > ${HAPROXY_PATH}/haproxy.cfg <<EOF
 global
     log /dev/log local0
     log /dev/log local1 notice
@@ -40,7 +41,7 @@ listen kube-master
     server ${MASTER_IPS[1]} ${MASTER_IPS[1]}:6443 check inter 2000 fall 2 rise 2 weight 1
     server ${MASTER_IPS[2]} ${MASTER_IPS[2]}:6443 check inter 2000 fall 2 rise 2 weight 1
 EOF
-cat haproxy.cfg
+cat ${HAPROXY_PATH}/haproxy.cfg
 
 # 分发haproxy配置文件及启动服务
 echo "==========分发haproxy配置文件及启动服务=========="
@@ -49,7 +50,7 @@ for master_ip in ${MASTER_IPS[@]}
     echo ">>> ${master_ip}"
     echo "分发haproxy配置文件"
     ssh root@${master_ip} "mkdir -p /etc/haproxy"
-    scp haproxy.cfg root@${master_ip}:/etc/haproxy/
+    scp ${HAPROXY_PATH}/haproxy.cfg root@${master_ip}:/etc/haproxy/
 
     echo "启动haproxy服务"
     ssh root@${master_ip} "
@@ -63,17 +64,9 @@ for master_ip in ${MASTER_IPS[@]}
     if [ $? -ne 0 ];then echo "启动haproxy服务失败，退出脚本";exit 1;fi
   done
 
-# 编译keepalived
-echo "=======编译keepalived======="
-cd keepalived-2.0.6
-./configure
-make
-if [ $? -ne 0 ];then echo "编译keepalived失败，退出脚本";exit 1;fi
-cd ..
-
 # 创建keepalived systemd unit文件
 echo "=========创建keepalived systemd unit文件========="
-cat > keepalived.service <<"EOF"
+cat > ${KEEPALIVED_PATH}/keepalived.service <<"EOF"
 [Unit]
 Description=LVS and VRRP High Availability Monitor
 After= network-online.target syslog.target
@@ -90,11 +83,11 @@ ExecReload=/bin/kill -HUP $MAINPID
 [Install]
 WantedBy=multi-user.target
 EOF
-cat keepalived.service
+cat ${KEEPALIVED_PATH}/keepalived.service
 
 # 创建keepalived启动文件
 echo "=========创建keepalived启动文件========="
-cat > keepalived.env <<"EOF"
+cat > ${KEEPALIVED_PATH}/keepalived.env <<"EOF"
 # Options for keepalived. See `keepalived --help' output and keepalived(8) and
 # keepalived.conf(5) man pages for a list of all options. Here are the most
 # common ones :
@@ -111,11 +104,11 @@ cat > keepalived.env <<"EOF"
 KEEPALIVED_OPTIONS="-D"
 
 EOF
-cat keepalived.env
+cat ${KEEPALIVED_PATH}/keepalived.env
 
 # keepalived-master配置文件
 echo "=========keepalived-master配置文件========="
-cat > keepalived-master.conf <<EOF
+cat > ${KEEPALIVED_PATH}/keepalived-master.conf <<EOF
 global_defs {
     router_id lb-master-105
 }
@@ -139,11 +132,11 @@ vrrp_instance VI-kube-master {
     }
 }
 EOF
-cat keepalived-master.conf
+cat ${KEEPALIVED_PATH}/keepalived-master.conf
 
 # keepalived-backup配置文件
 echo "=========keepalived-backup配置文件========="
-cat > keepalived-backup.conf <<EOF
+cat > ${KEEPALIVED_PATH}/keepalived-backup.conf <<EOF
 global_defs {
     router_id lb-backup-105
 }
@@ -167,7 +160,7 @@ vrrp_instance VI-kube-master {
     }
 }
 EOF
-cat keepalived-backup.conf
+cat ${KEEPALIVED_PATH}/keepalived-backup.conf
 
 # 分发keepalived配置文件及启动
 echo "==========分发keepalived配置文件及启动========"
@@ -180,24 +173,24 @@ for (( i=0; i < 3; i++ ))
       systemctl stop keepalived
       rm -f /usr/local/bin/keepalived
       fi"
-    scp keepalived-2.0.6/bin/keepalived \
+    scp ${KEEPALIVED_PATH}/keepalived \
       root@${MASTER_IPS[i]}:/usr/local/bin/
 
     echo "分发keepalived的systemd unit文件"
-    scp keepalived.service \
+    scp ${KEEPALIVED_PATH}/keepalived.service \
       root@${MASTER_IPS[i]}:/usr/lib/systemd/system/keepalived.service
 
     echo "分发keepalived启动文件"
-    scp keepalived.env \
+    scp ${KEEPALIVED_PATH}/keepalived.env \
         root@${MASTER_IPS[i]}:/etc/sysconfig/keepalived
 
     echo "分发keepalived配置文件"
     ssh root@${MASTER_IPS[i]} "mkdir -p /etc/keepalived"
     if [ $i -eq 0 ];then
-      scp keepalived-master.conf \
+      scp ${KEEPALIVED_PATH}/keepalived-master.conf \
         root@${MASTER_IPS[i]}:/etc/keepalived/keepalived.conf
     else
-      scp keepalived-backup.conf \
+      scp ${KEEPALIVED_PATH}/keepalived-backup.conf \
         root@${MASTER_IPS[i]}:/etc/keepalived/keepalived.conf
     fi
 

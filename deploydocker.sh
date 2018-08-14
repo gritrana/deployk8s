@@ -1,8 +1,9 @@
 source env.sh
 
+mkdir -p ${DOCKER_PATH}
 # 创建docker systemd service文件
 echo "========创建docker systemd service文件========"
-cat > docker.service <<"EOF"
+cat > ${DOCKER_PATH}/docker.service <<"EOF"
 [Unit]
 Description=Docker Application Container Engine
 Documentation=https://docs.docker.com
@@ -38,7 +39,7 @@ StartLimitInterval=60s
 [Install]
 WantedBy=multi-user.target
 EOF
-cat docker.service
+cat ${DOCKER_PATH}/docker.service
 
 # 分发docker systemd service文件和启动
 echo "========分发docker systemd service文件和启动========"
@@ -46,7 +47,8 @@ for node_ip in ${NODE_IPS[@]}
   do
     echo ">>> ${node_ip}"
     echo "分发docker.service"
-    scp docker.service root@${node_ip}:/usr/lib/systemd/system/
+    scp ${DOCKER_PATH}/docker.service \
+    root@${node_ip}:/usr/lib/systemd/system/
 
     echo "启动docker"
     ssh root@${node_ip} "

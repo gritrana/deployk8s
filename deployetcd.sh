@@ -2,7 +2,7 @@ source env.sh
 
 # 创建etcd证书签名请求
 echo "=========创建etcd证书签名请求========"
-cat > etcd-csr.json <<EOF
+cat > ${ETCD_PATH}/etcd-csr.json <<EOF
 {
   "CN": "etcd",
   "hosts": [
@@ -26,20 +26,23 @@ cat > etcd-csr.json <<EOF
   ]
 }
 EOF
-cat etcd-csr.json
+cat ${ETCD_PATH}/etcd-csr.json
 
 # 创建etcd证书和私钥
 echo "=========创建etcd证书和私钥========"
 cfssl gencert \
-  -ca=ca.pem \
-  -ca-key=ca-key.pem \
-  -config=ca-config.json \
-  -profile=kubernetes etcd-csr.json | cfssljson -bare etcd
-ls etcd*.pem
+-ca=/etc/kubernetes/cert/ca.pem \
+-ca-key=/etc/kubernetes/cert/ca-key.pem \
+-config=/etc/kubernetes/cert/ca-config.json \
+-profile=kubernetes \
+${ETCD_PATH}/etcd-csr.json | \
+cfssljson -bare ${ETCD_PATH}/etcd
+if [ $? -ne 0 ];then echo "创建etcd证书和私钥失败，退出脚本";exit 1;fi
+ls ${ETCD_PATH}/etcd*.pem
 
 # 创建etcdctl证书签名请求
 echo "=========创建etcdctl证书签名请求========"
-cat > etcdctl-csr.json <<EOF
+cat > ${ETCD_PATH}/etcdctl-csr.json <<EOF
 {
   "CN": "etcdctl",
   "hosts": [],
@@ -58,20 +61,23 @@ cat > etcdctl-csr.json <<EOF
   ]
 }
 EOF
-cat etcdctl-csr.json
+cat ${ETCD_PATH}/etcdctl-csr.json
 
 # 创建etcdctl证书和私钥
 echo "=========创建etcdctl证书和私钥========"
 cfssl gencert \
-  -ca=ca.pem \
-  -ca-key=ca-key.pem \
-  -config=ca-config.json \
-  -profile=kubernetes etcdctl-csr.json | cfssljson -bare etcdctl
-ls etcdctl*.pem
+-ca=/etc/kubernetes/cert/ca.pem \
+-ca-key=/etc/kubernetes/cert/ca-key.pem \
+-config=/etc/kubernetes/cert/ca-config.json \
+-profile=kubernetes \
+${ETCD_PATH}/etcdctl-csr.json | \
+cfssljson -bare ${ETCD_PATH}/etcdctl
+if [ $? -ne 0 ];then echo "创建etcdctl证书和私钥失败，退出脚本";exit 1;fi
+ls ${ETCD_PATH}/etcdctl*.pem
 
 # 创建etcd的systemd unit模板文件
 echo "=========创建etcd的systemd unit模板文件========"
-cat > etcd.service.template <<EOF 
+cat > ${ETCD_PATH}/etcd.service.template <<EOF 
 [Unit]
 Description=Etcd Server
 After=network.target
@@ -107,7 +113,7 @@ LimitNOFILE=65536
 [Install]
 WantedBy=multi-user.target
 EOF
-cat etcd.service.template
+cat ${ETCD_PATH}/etcd.service.template
 
 # 根据模板创建各systemd unit文件
 echo "==========根据模板创建各systemd unit文件========="
@@ -116,8 +122,9 @@ for (( i=0; i < 3; i++ ))
     echo ">>> ${ETCD_NAMES[i]}"
     sed -e "s/##NODE_NAME##/${ETCD_NAMES[i]}/" \
         -e "s/##NODE_IP##/${MASTER_IPS[i]}/" \
-           etcd.service.template > etcd-${MASTER_IPS[i]}.service
-    cat etcd-${MASTER_IPS[i]}.service
+    ${ETCD_PATH}/etcd.service.template > \
+    ${ETCD_PATH}/etcd-${MASTER_IPS[i]}.service
+    cat ${ETCD_PATH}/etcd-${MASTER_IPS[i]}.service
   done
 
 # 分发并启动etcd
@@ -131,14 +138,15 @@ for master_ip in ${MASTER_IPS[@]}
       systemctl stop etcd
       rm -f /usr/local/bin/etcd
       fi"
-    scp etcd-v3.3.8-linux-amd64/etcd root@${master_ip}:/usr/local/bin/
+    scp ${ETCD_PATH}/etcd root@${master_ip}:/usr/local/bin/
     
     echo "分发etcd证书和私钥"
     ssh root@${master_ip} "mkdir -p /etc/etcd/cert"
-    scp etcd.pem etcd-key.pem root@${master_ip}:/etc/etcd/cert/
+    scp ${ETCD_PATH}/{etcd.pem,etcd-key.pem} \
+    root@${master_ip}:/etc/etcd/cert/
 
     echo "分发etcd的systemd unit文件"
-    scp etcd-${master_ip}.service \
+    scp ${ETCD_PATH}/etcd-${master_ip}.service \
       root@${master_ip}:/usr/lib/systemd/system/etcd.service
     
     echo "启动etcd，首次启动这里会卡一段时间，不过不要紧"
@@ -157,12 +165,13 @@ for master_node_ip in ${MASTER_NODE_IPS[@]}
   do
     echo ">>> ${master_node_ip}"
     echo "分发etcdctl"
-    scp etcd-v3.3.8-linux-amd64/etcdctl \
+    scp ${ETCD_PATH}/etcdctl \
       root@${master_node_ip}:/usr/local/bin/
 
     echo "分发etcdctl证书和私钥"
     ssh root@${master_node_ip} "mkdir -p /etc/etcdctl/cert"
-    scp etcdctl*.pem root@${master_node_ip}:/etc/etcdctl/cert/
+    scp ${ETCD_PATH}/etcdctl*.pem \
+    root@${master_node_ip}:/etc/etcdctl/cert/
 
     echo "${master_node_ip}验证etcd"
     ssh root@${master_node_ip} "
@@ -175,9 +184,16 @@ for master_node_ip in ${MASTER_NODE_IPS[@]}
     if [ $? -ne 0 ];then echo "分发etcdctl失败，退出脚本";exit 1;fi
   done
 
-# 也发一份etcdctl二进制到本地
-echo "=========也发一份etcdctl二进制到dev========="
-sudo cp etcd-v3.3.8-linux-amd64/etcdctl /usr/local/bin/
+# 分发etcdctl二进制到本地
+echo "=========分发etcdctl二进制到dev========="
+sudo cp ${ETCD_PATH}/etcdctl /usr/local/bin/
 if [ $? -ne 0 ];then echo "分发etcdctl到dev失败，退出脚本";exit 1;fi
 ls /usr/local/bin/etcdctl
+
+# 分发etcdctl证书和私钥到dev
+echo "=========分发etcdctl证书和私钥到dev========="
+sudo mkdir -p /etc/etcdctl/cert
+sudo cp ${ETCD_PATH}/etcdctl*.pem /etc/etcdctl/cert/
+if [ $? -ne 0 ];then echo "分发etcdctl证书和私钥到dev失败，退出脚本";exit 1;fi
+ls /etc/etcdctl/cert/
 

@@ -2,7 +2,7 @@ source env.sh
 
 # 分发一份kubeadm到本地
 echo "=======分发一份kubeadm到本地========="
-sudo cp kubernetes/server/bin/kubeadm /usr/local/bin/
+sudo cp ${KUBECTL_PATH}/kubeadm /usr/local/bin/
 if [ $? -ne 0 ];then echo "分发kubeadm失败，退出脚本";exit 1;fi
 ls /usr/local/bin/kubeadm
 
@@ -22,24 +22,24 @@ for ((i=0; i<3; i++))
     kubectl config set-cluster kubernetes \
     --certificate-authority=/etc/kubernetes/cert/ca.pem \
     --server=${KUBE_APISERVER} \
-    --kubeconfig=kubelet-bootstrap-${NODE_IPS[i]}.kubeconfig
+    --kubeconfig=${KUBELET_PATH}/kubelet-bootstrap-${NODE_IPS[i]}.kubeconfig
 
     # 设置客户端认证参数
     kubectl config set-credentials kubelet-bootstrap \
     --token=${BOOTSTRAP_TOKEN} \
-    --kubeconfig=kubelet-bootstrap-${NODE_IPS[i]}.kubeconfig
+    --kubeconfig=${KUBELET_PATH}/kubelet-bootstrap-${NODE_IPS[i]}.kubeconfig
 
     # 设置上下文参数
     kubectl config set-context default \
     --cluster=kubernetes \
     --user=kubelet-bootstrap \
-    --kubeconfig=kubelet-bootstrap-${NODE_IPS[i]}.kubeconfig
+    --kubeconfig=${KUBELET_PATH}/kubelet-bootstrap-${NODE_IPS[i]}.kubeconfig
 
     # 设置默认上下文
     kubectl config use-context default \
-    --kubeconfig=kubelet-bootstrap-${NODE_IPS[i]}.kubeconfig
+    --kubeconfig=${KUBELET_PATH}/kubelet-bootstrap-${NODE_IPS[i]}.kubeconfig
 
-    cat kubelet-bootstrap-${NODE_IPS[i]}.kubeconfig
+    cat ${KUBELET_PATH}/kubelet-bootstrap-${NODE_IPS[i]}.kubeconfig
   done
 
 # 显示刚刚创建的bootstrap token
@@ -49,7 +49,7 @@ if [ $? -ne 0 ];then echo "显示kubeadm token失败，退出脚本";exit 1;fi
 
 # 创建kubelet参数配置模板文件
 echo "========创建kubelet参数配置模板文件======="
-cat > kubelet.config.json.template <<EOF
+cat > ${KUBELET_PATH}/kubelet.config.json.template <<EOF
 {
     "kind": "KubeletConfiguration",
     "apiVersion": "kubelet.config.k8s.io/v1beta1",
@@ -86,7 +86,7 @@ cat > kubelet.config.json.template <<EOF
     "clusterDNS": ["${CLUSTER_DNS_SVC_IP}"]
 }
 EOF
-ls kubelet.config.json.template
+ls ${KUBELET_PATH}/kubelet.config.json.template
 
 # 创建kubelet参数配置文件
 echo "========创建kubelet参数配置文件========="
@@ -94,14 +94,14 @@ for node_ip in ${NODE_IPS[@]}
   do
     echo ">>> ${node_ip}"
     sed -e "s/##NODE_IP##/${node_ip}/" \
-      kubelet.config.json.template > \
-      kubelet.config-${node_ip}.json
-    cat kubelet.config-${node_ip}.json
+    ${KUBELET_PATH}/kubelet.config.json.template > \
+    ${KUBELET_PATH}/kubelet.config-${node_ip}.json
+    cat ${KUBELET_PATH}/kubelet.config-${node_ip}.json
   done
 
 # 创建kubelet systemd service模板文件
 echo "========创建kubelet systemd service模板文件======="
-cat > kubelet.service.template <<EOF
+cat > ${KUBELET_PATH}/kubelet.service.template <<EOF
 [Unit]
 Description=Kubernetes Kubelet
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
@@ -128,7 +128,7 @@ RestartSec=60
 [Install]
 WantedBy=multi-user.target
 EOF
-ls kubelet.service.template
+ls ${KUBELET_PATH}/kubelet.service.template
 
 # 创建kubelet systemd service文件
 echo "=========创建kubelet systemd service文件========="
@@ -136,16 +136,16 @@ for ((i=0; i<3; i++))
   do
     echo ">>> ${NODE_IPS[i]}"
     sed -e "s/##NODE_NAME##/${NODE_NAMES[i]}/" \
-      kubelet.service.template > \
-      kubelet-${NODE_IPS[i]}.service
-    cat kubelet-${NODE_IPS[i]}.service
+    ${KUBELET_PATH}/kubelet.service.template > \
+    ${KUBELET_PATH}/kubelet-${NODE_IPS[i]}.service
+    cat ${KUBELET_PATH}/kubelet-${NODE_IPS[i]}.service
   done
 
 # 创建cluster role binding
 #kubectl create clusterrolebinding kubelet-bootstrap --clusterrole=system:node-bootstrapper --group=system:bootstrappers
 
 # 创建csr cluster role binding
-cat > kubelet-crb.yaml <<EOF
+cat > ${KUBELET_PATH}/kubelet-crb.yaml <<EOF
 # kubelet-bootstarp
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -213,8 +213,8 @@ roleRef:
   name: approve-node-server-renewal-csr
   apiGroup: rbac.authorization.k8s.io
 EOF
-cat kubelet-crb.yaml
-kubectl apply -f kubelet-crb.yaml
+cat ${KUBELET_PATH}/kubelet-crb.yaml
+kubectl apply -f ${KUBELET_PATH}/kubelet-crb.yaml
 
 # 分发并启动kubelet
 echo "=========分发并启动kubelet======="
@@ -227,7 +227,7 @@ for node_ip in ${NODE_IPS[@]}
       systemctl stop kubelet
       rm -f /usr/local/bin/kubelet
       fi"
-    scp kubernetes/server/bin/kubelet root@${node_ip}:/usr/local/bin/
+    scp ${KUBELET_PATH}/kubelet root@${node_ip}:/usr/local/bin/
 
     echo "分发kubelet bootstrap kubeconfig文件"
     ssh root@${node_ip} "mkdir -p /etc/kubernetes"
@@ -235,15 +235,15 @@ for node_ip in ${NODE_IPS[@]}
       if [ -f /etc/kubernetes/kubelet.kubeconfig ];then
       rm -f /etc/kubernetes/kubelet.kubeconfig
       fi"
-    scp kubelet-bootstrap-${node_ip}.kubeconfig \
+    scp ${KUBELET_PATH}/kubelet-bootstrap-${node_ip}.kubeconfig \
       root@${node_ip}:/etc/kubernetes/kubelet-bootstrap.kubeconfig
 
     echo "分发kubelet参数配置文件"
-    scp kubelet.config-${node_ip}.json \
+    scp ${KUBELET_PATH}/kubelet.config-${node_ip}.json \
       root@${node_ip}:/etc/kubernetes/kubelet.config.json
 
     echo "分发kubelet systemd service文件"
-    scp kubelet-${node_ip}.service \
+    scp ${KUBELET_PATH}/kubelet-${node_ip}.service \
       root@${node_ip}:/usr/lib/systemd/system/kubelet.service
 
     echo "启动kubelet"

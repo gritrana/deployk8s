@@ -57,3 +57,17 @@ export CLUSTER_DNS_SVC_IP="10.254.0.2"
 # 集群 DNS 域名
 export CLUSTER_DNS_DOMAIN="cluster.local."
 
+# build path
+export KEEPALIVED_PATH=build/keepalived
+export HAPROXY_PATH=build/haproxy
+export CA_PATH=build/ca
+export ETCD_PATH=build/etcd
+export FLANNEL_PATH=build/flannel
+export DOCKER_PATH=build/docker
+export KUBECTL_PATH=build/k8s/kubectl
+export APISERVER_PATH=build/k8s/apiserver
+export CONTROLLER_MANAGER_PATH=build/k8s/controller-manager
+export SCHEDULER_PATH=build/k8s/scheduler
+export KUBELET_PATH=build/k8s/kubelet
+export KUBEPROXY_PATH=build/k8s/kubeproxy
+export TESTGIN_PATH=build/testgin

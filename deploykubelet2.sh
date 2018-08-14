@@ -2,7 +2,7 @@ source env.sh
 
 # 创建kubelet证书签名请求
 echo "=========创建kubelet证书签名请求========"
-cat > kubelet-csr.json <<EOF
+cat > ${KUBELET_PATH}/kubelet-csr.json <<EOF
 {
     "CN": "kubelet",
     "key": {
@@ -20,16 +20,19 @@ cat > kubelet-csr.json <<EOF
     ]
 }
 EOF
-cat kubelet-csr.json
+cat ${KUBELET_PATH}/kubelet-csr.json
 
 # 创建kubelet证书和私钥
 echo "=======创建kubelet证书和私钥======="
 cfssl gencert \
--ca=ca.pem \
--ca-key=ca-key.pem \
--config=ca-config.json \
--profile=kubernetes kubelet-csr.json | cfssljson -bare kubelet
-ls kubelet*.pem
+-ca=/etc/kubernetes/cert/ca.pem \
+-ca-key=/etc/kubernetes/cert/ca-key.pem \
+-config=/etc/kubernetes/cert/ca-config.json \
+-profile=kubernetes \
+${KUBELET_PATH}/kubelet-csr.json | \
+cfssljson -bare ${KUBELET_PATH}/kubelet
+if [ $? -ne 0 ];then echo "生成kubelet证书和私钥失败，退出脚本";exit 1;fi
+ls ${KUBELET_PATH}/kubelet*.pem
 
 # 创建kubelet kubeconfig文件
 echo "=========创建kubelet kubeconfig文件========="
@@ -37,27 +40,28 @@ echo "=========创建kubelet kubeconfig文件========="
 kubectl config set-cluster cluster1 \
 --certificate-authority=/etc/kubernetes/cert/ca.pem \
 --server=${KUBE_APISERVER} \
---kubeconfig=kubelet.kubeconfig
+--kubeconfig=${KUBELET_PATH}/kubelet.kubeconfig
 
 # 配置kubelet1用户（证书和私钥）
 kubectl config set-credentials kubelet1 \
 --client-certificate=/etc/kubernetes/cert/kubelet.pem \
 --client-key=/etc/kubernetes/cert/kubelet-key.pem \
---kubeconfig=kubelet.kubeconfig
+--kubeconfig=${KUBELET_PATH}/kubelet.kubeconfig
 
 # 配置context1
 kubectl config set-context context1 \
 --cluster=cluster1 \
 --user=kubelet1 \
---kubeconfig=kubelet.kubeconfig
+--kubeconfig=${KUBELET_PATH}/kubelet.kubeconfig
 
 # 设置context1为当前的context
-kubectl config use-context context1 --kubeconfig=kubelet.kubeconfig
-cat kubelet.kubeconfig
+kubectl config use-context context1 \
+--kubeconfig=${KUBELET_PATH}/kubelet.kubeconfig
+cat ${KUBELET_PATH}/kubelet.kubeconfig
 
 # 创建kubelet参数配置模板文件
 echo "========创建kubelet参数配置模板文件======="
-cat > kubelet.config.json.template <<EOF
+cat > ${KUBELET_PATH}/kubelet.config.json.template <<EOF
 {
     "kind": "KubeletConfiguration",
     "apiVersion": "kubelet.config.k8s.io/v1beta1",
@@ -94,7 +98,7 @@ cat > kubelet.config.json.template <<EOF
     "clusterDNS": ["${CLUSTER_DNS_SVC_IP}"]
 }
 EOF
-ls kubelet.config.json.template
+ls ${KUBELET_PATH}/kubelet.config.json.template
 
 # 创建kubelet参数配置文件
 echo "========创建kubelet参数配置文件========="
@@ -102,14 +106,14 @@ for node_ip in ${NODE_IPS[@]}
   do
     echo ">>> ${node_ip}"
     sed -e "s/##NODE_IP##/${node_ip}/" \
-      kubelet.config.json.template > \
-      kubelet.config-${node_ip}.json
-    cat kubelet.config-${node_ip}.json
+    ${KUBELET_PATH}/kubelet.config.json.template > \
+    ${KUBELET_PATH}/kubelet.config-${node_ip}.json
+    cat ${KUBELET_PATH}/kubelet.config-${node_ip}.json
   done
 
 # 创建kubelet systemd service模板文件
 echo "========创建kubelet systemd service模板文件======="
-cat > kubelet.service.template <<EOF
+cat > ${KUBELET_PATH}/kubelet.service.template <<EOF
 [Unit]
 Description=Kubernetes Kubelet
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
@@ -135,7 +139,7 @@ RestartSec=60
 [Install]
 WantedBy=multi-user.target
 EOF
-ls kubelet.service.template
+ls ${KUBELET_PATH}/kubelet.service.template
 
 # 创建kubelet systemd service文件
 echo "=========创建kubelet systemd service文件========="
@@ -143,9 +147,9 @@ for ((i=0; i<3; i++))
   do
     echo ">>> ${NODE_IPS[i]}"
     sed -e "s/##NODE_NAME##/${NODE_NAMES[i]}/" \
-      kubelet.service.template > \
-      kubelet-${NODE_IPS[i]}.service
-    cat kubelet-${NODE_IPS[i]}.service
+    ${KUBELET_PATH}/kubelet.service.template > \
+    ${KUBELET_PATH}/kubelet-${NODE_IPS[i]}.service
+    cat ${KUBELET_PATH}/kubelet-${NODE_IPS[i]}.service
   done
 
 # 分发并启动kubelet
@@ -159,23 +163,24 @@ for node_ip in ${NODE_IPS[@]}
       systemctl stop kubelet
       rm -f /usr/local/bin/kubelet
       fi"
-    scp kubernetes/server/bin/kubelet root@${node_ip}:/usr/local/bin/
+    scp ${KUBELET_PATH}//kubelet root@${node_ip}:/usr/local/bin/
 
     echo "分发kubelet证书和私钥"
     ssh root@${node_ip} "mkdir -p /etc/kubernetes/cert"
-    scp kubelet*.pem root@${node_ip}:/etc/kubernetes/cert/
+    scp ${KUBELET_PATH}/kubelet*.pem \
+    root@${node_ip}:/etc/kubernetes/cert/
 
     echo "分发kubelet kubeconfig文件"
     ssh root@${node_ip} "mkdir -p /etc/kubernetes"
-    scp kubelet.kubeconfig \
+    scp ${KUBELET_PATH}/kubelet.kubeconfig \
       root@${node_ip}:/etc/kubernetes/kubelet.kubeconfig
 
     echo "分发kubelet参数配置文件"
-    scp kubelet.config-${node_ip}.json \
+    scp ${KUBELET_PATH}/kubelet.config-${node_ip}.json \
       root@${node_ip}:/etc/kubernetes/kubelet.config.json
 
     echo "分发kubelet systemd service文件"
-    scp kubelet-${node_ip}.service \
+    scp ${KUBELET_PATH}/kubelet-${node_ip}.service \
       root@${node_ip}:/usr/lib/systemd/system/kubelet.service
 
     echo "启动kubelet"

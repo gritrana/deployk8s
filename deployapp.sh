@@ -1,7 +1,8 @@
 source env.sh
 
+mkdir -p ${TESTGIN_PATH}
 # 编写testgin的配置文件
-cat > config.json <<EOF
+cat > ${TESTGIN_PATH}/config.json <<EOF
 {
     "db":{
         "name": "mysql",
@@ -23,19 +24,20 @@ cat > config.json <<EOF
     }
 }
 EOF
-ls config.json
+cat ${TESTGIN_PATH}/config.json
 
 # 分发testgin配置文件
 for node_ip in ${NODE_IPS[@]}
   do
     echo ">>> ${node_ip}"
     ssh root@${node_ip} "mkdir -p /root/testgin"
-    scp config.json root@${node_ip}:/root/testgin/
+    scp ${TESTGIN_PATH}/config.json \
+    root@${node_ip}:/root/testgin/
   done
 
 # 编写testgin部署yaml
 echo "========编写testgin部署yaml========"
-cat > testgin.yaml << EOF
+cat > ${TESTGIN_PATH}/testgin.yaml << EOF
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment
@@ -83,9 +85,9 @@ spec:
   selector:
     app: web
 EOF
-ls testgin.yaml
+cat ${TESTGIN_PATH}/testgin.yaml
 
 # 创建testgin部署并暴露服务
 echo "========创建testgin部署并暴露服务========"
-kubectl create -f testgin.yaml
+kubectl create -f ${TESTGIN_PATH}/testgin.yaml
 

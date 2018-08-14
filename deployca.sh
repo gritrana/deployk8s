@@ -1,8 +1,9 @@
 source env.sh
 
+mkdir -p ${CA_PATH}
 # 创建CA配置文件
 echo "========创建CA配置文件======="
-cat > ca-config.json <<EOF
+cat > ${CA_PATH}/ca-config.json <<EOF
 {
   "signing": {
     "default": {
@@ -22,11 +23,11 @@ cat > ca-config.json <<EOF
   }
 }
 EOF
-cat ca-config.json
+cat ${CA_PATH}/ca-config.json
 
 # 创建CA证书签名请求
 echo "========创建CA证书签名请求======="
-cat > ca-csr.json <<EOF
+cat > ${CA_PATH}/ca-csr.json <<EOF
 {
   "CN": "kubernetes",
   "key": {
@@ -44,24 +45,41 @@ cat > ca-csr.json <<EOF
   ]
 }
 EOF
-cat ca-csr.json
+cat ${CA_PATH}/ca-csr.json
 
 # 生成CA证书和私钥
 echo "=========生成CA证书和私钥========="
 cfssl gencert \
-  -initca ca-csr.json | cfssljson -bare ca
-ls ca*.pem
+-initca ${CA_PATH}/ca-csr.json | cfssljson -bare ${CA_PATH}/ca
+ls ${CA_PATH}/ca*.pem
+chmod +r ${CA_PATH}/ca-key.pem
 
-# 分发CA证书和私钥
-echo "=========分发CA证书和私钥========="
-for master_node_ip in ${MASTER_NODE_IPS[@]}
+# 分发CA证书和私钥到master
+echo "=========分发CA证书和私钥到master========="
+for master_ip in ${MASTER_IPS[@]}
   do
-    echo ">>> ${master_node_ip}"
+    echo ">>> ${master_ip}"
     echo "分发CA证书和私钥"
-    ssh root@${master_node_ip} "mkdir -p /etc/kubernetes/cert"
-    scp ca-config.json ca*.pem \
-      root@${master_node_ip}:/etc/kubernetes/cert/
+    ssh root@${master_ip} "mkdir -p /etc/kubernetes/cert"
+    scp ${CA_PATH}/ca*.pem \
+      root@${master_ip}:/etc/kubernetes/cert/
     if [ $? -ne 0 ];then echo "分发CA证书和私钥失败，退出脚本";exit 1;fi
   done
 
+# 分发CA证书到node
+echo "=========分发CA证书到node========="
+for node_ip in ${NODE_IPS[@]}
+  do
+    echo ">>> ${node_ip}"
+    echo "分发CA证书和私钥"
+    ssh root@${node_ip} "mkdir -p /etc/kubernetes/cert"
+    scp ${CA_PATH}/ca.pem \
+      root@${node_ip}:/etc/kubernetes/cert/
+    if [ $? -ne 0 ];then echo "分发CA证书和私钥失败，退出脚本";exit 1;fi
+  done
 
+# 分发CA证书和私钥及配置到dev
+echo "=========分发CA证书和私钥到dev========="
+sudo mkdir -p /etc/kubernetes/cert
+sudo cp ${CA_PATH}/ca* /etc/kubernetes/cert/
+ls /etc/kubernetes/cert/ca*

@@ -1,8 +1,8 @@
 source env.sh
 
-# 创建flannel证书签名请求
-echo "==========创建flannel证书签名请求========="
-cat > flanneld-csr.json <<EOF
+# 创建flanneld证书签名请求
+echo "==========创建flanneld证书签名请求========="
+cat > ${FLANNEL_PATH}/flanneld-csr.json <<EOF
 {
   "CN": "flanneld",
   "hosts": [],
@@ -21,31 +21,34 @@ cat > flanneld-csr.json <<EOF
   ]
 }
 EOF
-cat flanneld-csr.json
+cat ${FLANNEL_PATH}/flanneld-csr.json
 
-# 生成flannel证书和私钥
-echo "=========生成flannel证书和私钥========"
+# 生成flanneld证书和私钥
+echo "=========生成flanneld证书和私钥========"
 cfssl gencert \
-  -ca=ca.pem \
-  -ca-key=ca-key.pem \
-  -config=ca-config.json \
-  -profile=kubernetes flanneld-csr.json | cfssljson -bare flanneld
-ls flanneld*.pem
+-ca=/etc/kubernetes/cert/ca.pem \
+-ca-key=/etc/kubernetes/cert/ca-key.pem \
+-config=/etc/kubernetes/cert/ca-config.json \
+-profile=kubernetes \
+${FLANNEL_PATH}/flanneld-csr.json | \
+cfssljson -bare ${FLANNEL_PATH}/flanneld
+if [ $? -ne 0 ];then echo "生成flanneld证书和私钥失败，退出脚本";exit 1;fi
+ls ${FLANNEL_PATH}/flanneld*.pem
 
 # 向etcd写入集群Pod网段信息
 echo "=========向etcd写入集群Pod网段信息========="
 etcdctl \
 --endpoints=${ETCD_ENDPOINTS} \
---ca-file=ca.pem \
---cert-file=flanneld.pem \
---key-file=flanneld-key.pem \
+--ca-file=/etc/kubernetes/cert/ca.pem \
+--cert-file=${FLANNEL_PATH}/flanneld.pem \
+--key-file=${FLANNEL_PATH}/flanneld-key.pem \
 set ${FLANNEL_ETCD_PREFIX}/config '{"Network":"'${CLUSTER_CIDR}'", 
 "SubnetLen": 24, "Backend": {"Type": "vxlan"}}'
 
 # 创建flanneld的systemd unit文件
 echo "=======创建flanneld的systemd unit文件========="
 #export IFACE=ens33
-cat > flanneld.service << EOF
+cat > ${FLANNEL_PATH}/flanneld.service << EOF
 [Unit]
 Description=Flanneld overlay address etcd agent
 After=network.target
@@ -71,27 +74,30 @@ Restart=on-failure
 WantedBy=multi-user.target
 RequiredBy=docker.service
 EOF
-cat flanneld.service
+cat ${FLANNEL_PATH}/flanneld.service
 
-# 分发flannel二进制，证书和私钥，flanneld.service，并启动flanneld
-echo "=========分发flannel并启动========"
+# 分发并启动flanneld
+echo "=========分发并启动flanneld========"
 for node_ip in ${NODE_IPS[@]}
   do
     echo ">>> ${node_ip}"
-    echo "分发flannel二进制文件"
+    echo "分发flanneld二进制文件"
     ssh root@${node_ip} "
       if [ -f /usr/local/bin/flanneld ];then
       systemctl stop flanneld
       rm -f /usr/local/bin/{flanneld,mk-docker-opts.sh}
       fi"
-    scp flannel/{flanneld,mk-docker-opts.sh} root@${node_ip}:/usr/local/bin/
+    scp ${FLANNEL_PATH}/{flanneld,mk-docker-opts.sh} \
+    root@${node_ip}:/usr/local/bin/
 
-    echo "分发flannel证书和私钥"
+    echo "分发flanneld证书和私钥"
     ssh root@${node_ip} "mkdir -p /etc/flanneld/cert"
-    scp flanneld*.pem root@${node_ip}:/etc/flanneld/cert/
+    scp ${FLANNEL_PATH}/flanneld*.pem \
+    root@${node_ip}:/etc/flanneld/cert/
 
     echo "分发flanneld.service"
-    scp flanneld.service root@${node_ip}:/usr/lib/systemd/system/
+    scp ${FLANNEL_PATH}/flanneld.service \
+    root@${node_ip}:/usr/lib/systemd/system/
 
     echo "启动flanneld"
     ssh root@${node_ip} "

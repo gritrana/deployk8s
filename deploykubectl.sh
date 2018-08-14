@@ -1,7 +1,7 @@
 source env.sh
 
 # 创建证书签名请求
-cat > admin-csr.json <<EOF
+cat > ${KUBECTL_PATH}/admin-csr.json <<EOF
 {
   "CN": "admin",
   "hosts": [],
@@ -20,32 +20,63 @@ cat > admin-csr.json <<EOF
   ]
 }
 EOF
-cat admin-csr.json
+cat ${KUBECTL_PATH}/admin-csr.json
 
 # 生成kubectl证书和私钥
 echo "=======生成kubectl证书和私钥========"
 cfssl gencert \
-  -ca=ca.pem \
-  -ca-key=ca-key.pem \
-  -config=ca-config.json \
-  -profile=kubernetes admin-csr.json | cfssljson -bare admin
-ls admin*.pem
-
-: '
-# 分发kubectl证书和密钥
-echo "=======分发kubectl证书和密钥========"
-mkdir -p ~/.kube
-cp admin*.pem ~/.kube/
-ls ~/.kube/
-'
-
-# 分发kubectl
-echo "========分发kubectl======="
-sudo cp kubernetes/server/bin/kubectl /usr/local/bin/
-if [ $? -ne 0 ];then echo "分发kubectl失败，退出脚本";exit 1;fi
-ls /usr/local/bin/kubectl
+-ca=/etc/kubernetes/cert/ca.pem \
+-ca-key=/etc/kubernetes/cert/ca-key.pem \
+-config=/etc/kubernetes/cert/ca-config.json \
+-profile=kubernetes \
+${KUBECTL_PATH}/admin-csr.json | \
+cfssljson -bare ${KUBECTL_PATH}/admin
+if [ $? -ne 0 ];then echo "生成kubectl证书和私钥失败，退出脚本";exit 1;fi
+ls ${KUBECTL_PATH}/admin*.pem
 
 # 创建kubeconfig文件
+cat > ${KUBECTL_PATH}/kubectl.kubeconfig << EOF
+apiVersion: v1
+clusters:
+- name: cluster1
+  cluster:
+    certificate-authority: /etc/kubernetes/cert/ca.pem
+    server: ${KUBE_APISERVER}
+contexts:
+- name: context1
+  context:
+    cluster: kubernete1
+    user: admin
+current-context: context1
+kind: Config
+preferences: {}
+users:
+- name: admin
+  user:
+    client-certificate: /etc/kubectl/cert/admin.pem
+    client-key: /etc/kubectl/cert/admin-key.pem
+EOF
+cat ${KUBECTL_PATH}/kubectl.kubeconfig
+
+# 分发kubectl二进制
+echo "========分发kubectl二进制======="
+sudo cp ${KUBECTL_PATH}/kubectl /usr/local/bin/
+if [ $? -ne 0 ];then echo "分发kubectl二进制失败，退出脚本";exit 1;fi
+ls /usr/local/bin/kubectl
+
+# 分发kubectl证书和密钥
+echo "=======分发kubectl证书和密钥========"
+sudo mkdir -p /etc/kubectl/cert
+sudo cp ${KUBECTL_PATH}/admin*.pem /etc/kubectl/cert/
+if [ $? -ne 0 ];then echo "分发kubectl证书和私钥失败，退出脚本";exit 1;fi
+ls /etc/kubectl/cert/admin*.pem
+
+# 分发kubeconfig文件
+echo "=======分发kubectl kubeconfig文件========"
+cp ${KUBECTL_PATH}/kubectl.kubeconfig ~/.kube/config
+if [ $? -ne 0 ];then echo "分发kubectl kubeconfig文件失败，退出脚本";exit 1;fi
+
+: '不使用kubectl工具创建kubeconfig文件
 # --certificate-authority参数没法把~/.kube解析成相对路径
 # 这里只能使用相对路径下的证书和密钥了，copy的时候需要留意
 echo "=========创建kubeconfig文件========="
@@ -67,9 +98,9 @@ kubectl config set-context kubernetes \
 # 设置默认上下文
 kubectl config use-context kubernetes
 cat ~/.kube/config
+'
 
-: '
-没有必要把kubectl部署到集群中
+: '没有必要把kubectl部署到集群中
 # 分发kubeconfig文件
 for master_node_ip in ${MASTER_NODE_IPS[@]}
   do

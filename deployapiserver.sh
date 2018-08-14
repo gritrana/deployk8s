@@ -2,7 +2,7 @@ source env.sh
 
 # 创建kubernetes证书签名请求
 echo "========创建kubernetes证书签名请求========"
-cat > kubernetes-csr.json <<EOF
+cat > ${APISERVER_PATH}/kubernetes-csr.json <<EOF
 {
   "CN": "kubernetes",
   "hosts": [
@@ -33,20 +33,23 @@ cat > kubernetes-csr.json <<EOF
   ]
 }
 EOF
-cat kubernetes-csr.json
+cat ${APISERVER_PATH}/kubernetes-csr.json
 
 # 创建kubernetes证书和私钥
 echo "=========创建kubernetes证书和私钥========"
 cfssl gencert \
-  -ca=ca.pem \
-  -ca-key=ca-key.pem \
-  -config=ca-config.json \
-  -profile=kubernetes kubernetes-csr.json | cfssljson -bare kubernetes
-ls kubernetes*.pem
+-ca=/etc/kubernetes/cert/ca.pem \
+-ca-key=/etc/kubernetes/cert/ca-key.pem \
+-config=/etc/kubernetes/cert/ca-config.json \
+-profile=kubernetes \
+${APISERVER_PATH}/kubernetes-csr.json | \
+cfssljson -bare ${APISERVER_PATH}/kubernetes
+if [ $? -ne 0 ];then echo "生成kubernetes证书和私钥失败，退出脚本";exit 1;fi
+ls ${APISERVER_PATH}/kubernetes*.pem
 
 # 创建加密配置文件
 echo "=========创建加密配置文件========"
-cat > encryption-config.yaml <<EOF
+cat > ${APISERVER_PATH}/encryption-config.yaml <<EOF
 kind: EncryptionConfig
 apiVersion: v1
 resources:
@@ -59,11 +62,11 @@ resources:
               secret: ${ENCRYPTION_KEY}
       - identity: {}
 EOF
-cat encryption-config.yaml
+cat ${APISERVER_PATH}/encryption-config.yaml
 
 # 创建kube-apiserver systemd unit模板
 echo "=======# 创建kube-apiserver systemd unit模板======="
-cat > kube-apiserver.service.template <<EOF
+cat > ${APISERVER_PATH}/kube-apiserver.service.template <<EOF
 [Unit]
 Description=Kubernetes API Server
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
@@ -112,7 +115,7 @@ LimitNOFILE=65536
 [Install]
 WantedBy=multi-user.target
 EOF
-ls kube-apiserver.service.template
+cat ${APISERVER_PATH}/kube-apiserver.service.template
 
 # 创建kube-apiserver systemd unit文件
 echo "=======创建kube-apiserver systemd unit文件======="
@@ -121,8 +124,9 @@ for (( i=0; i < 3; i++ ))
     echo ">>> ${MASTER_NAMES[i]}"
     sed -e "s/##NODE_NAME##/${MASTER_NAMES[i]}/" \
         -e "s/##NODE_IP##/${MASTER_IPS[i]}/" \
-        kube-apiserver.service.template > kube-apiserver-${MASTER_IPS[i]}.service
-    cat kube-apiserver-${MASTER_IPS[i]}.service
+    ${APISERVER_PATH}/kube-apiserver.service.template > \
+    ${APISERVER_PATH}/kube-apiserver-${MASTER_IPS[i]}.service
+    cat ${APISERVER_PATH}/kube-apiserver-${MASTER_IPS[i]}.service
   done
 
 # 分发并启动kube-apiserver
@@ -130,23 +134,27 @@ echo "========分发并启动kube-apiserver======="
 for master_ip in ${MASTER_IPS[@]}
   do
     echo ">>> ${master_ip}"
-    echo "分发apiserver二进制（这里有时也会卡一下，停止kube-apiserver需要时间）"
+    echo "分发apiserver二进制"
     ssh root@${master_ip} "
       if [ -f /usr/local/bin/kube-apiserver ];then
+      echo '这里有时也会卡一下，停止kube-apiserver需要时间'
       systemctl stop kube-apiserver
       rm -f /usr/local/bin/kube-apiserver
       fi"
-    scp kubernetes/server/bin/kube-apiserver root@${master_ip}:/usr/local/bin/
+    scp ${APISERVER_PATH}/kube-apiserver \
+    root@${master_ip}:/usr/local/bin/
 
     echo "分发证书和私钥"
     ssh root@${master_ip} "mkdir -p /etc/kubernetes/cert"
-    scp kubernetes*.pem root@${master_ip}:/etc/kubernetes/cert/
+    scp ${APISERVER_PATH}/kubernetes*.pem \
+    root@${master_ip}:/etc/kubernetes/cert/
 
     echo "分发加密配置文件"
-    scp encryption-config.yaml root@${master_ip}:/etc/kubernetes/
+    scp ${APISERVER_PATH}/encryption-config.yaml \
+    root@${master_ip}:/etc/kubernetes/
 
     echo "分发systemd unit文件"
-    scp kube-apiserver-${master_ip}.service \
+    scp ${APISERVER_PATH}/kube-apiserver-${master_ip}.service \
       root@${master_ip}:/usr/lib/systemd/system/kube-apiserver.service
 
     echo "启动kube-apiserver服务"

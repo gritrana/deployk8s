@@ -2,7 +2,7 @@ source env.sh
 
 # 创建scheduler证书签名请求
 echo "==========创建scheduler证书签名请求=========="
-cat > kube-scheduler-csr.json <<EOF
+cat > ${SCHEDULER_PATH}/kube-scheduler-csr.json <<EOF
 {
     "CN": "system:kube-scheduler",
     "hosts": [
@@ -26,42 +26,44 @@ cat > kube-scheduler-csr.json <<EOF
     ]
 }
 EOF
-cat kube-scheduler-csr.json
+cat ${SCHEDULER_PATH}/kube-scheduler-csr.json
 
 # 生成scheduler证书和私钥
 echo "========生成scheduler证书和私钥========"
-cfssl gencert\
-  -ca=ca.pem \
-  -ca-key=ca-key.pem \
-  -config=ca-config.json \
-  -profile=kubernetes \
-  kube-scheduler-csr.json | cfssljson -bare kube-scheduler
-ls kube-scheduler*.pem
+cfssl gencert \
+-ca=/etc/kubernetes/cert/ca.pem \
+-ca-key=/etc/kubernetes/cert/ca-key.pem \
+-config=/etc/kubernetes/cert/ca-config.json \
+-profile=kubernetes \
+${SCHEDULER_PATH}/kube-scheduler-csr.json | \
+cfssljson -bare ${SCHEDULER_PATH}/kube-scheduler
+if [ $? -ne 0 ];then echo "生成scheduler证书和私钥失败，退出脚本";exit 1;fi
+ls ${SCHEDULER_PATH}/kube-scheduler*.pem
 
 # 创建scheduler kubeconfig文件
 echo "==========创建scheduler kubeconfig文件=========="
 kubectl config set-cluster kubernetes \
-  --certificate-authority=/etc/kubernetes/cert/ca.pem \
-  --server=${KUBE_APISERVER} \
-  --kubeconfig=kube-scheduler.kubeconfig
+--certificate-authority=/etc/kubernetes/cert/ca.pem \
+--server=${KUBE_APISERVER} \
+--kubeconfig=${SCHEDULER_PATH}/kube-scheduler.kubeconfig
 
 kubectl config set-credentials system:kube-scheduler \
-  --client-certificate=/etc/kubernetes/cert/kube-scheduler.pem \
-  --client-key=/etc/kubernetes/cert/kube-scheduler-key.pem \
-  --kubeconfig=kube-scheduler.kubeconfig
+--client-certificate=/etc/kubernetes/cert/kube-scheduler.pem \
+--client-key=/etc/kubernetes/cert/kube-scheduler-key.pem \
+--kubeconfig=${SCHEDULER_PATH}/kube-scheduler.kubeconfig
 
 kubectl config set-context system:kube-scheduler \
-  --cluster=kubernetes \
-  --user=system:kube-scheduler \
-  --kubeconfig=kube-scheduler.kubeconfig
+--cluster=kubernetes \
+--user=system:kube-scheduler \
+--kubeconfig=${SCHEDULER_PATH}/kube-scheduler.kubeconfig
 
 kubectl config use-context system:kube-scheduler \
-  --kubeconfig=kube-scheduler.kubeconfig
-cat kube-scheduler.kubeconfig
+--kubeconfig=${SCHEDULER_PATH}/kube-scheduler.kubeconfig
+cat ${SCHEDULER_PATH}/kube-scheduler.kubeconfig
 
 # 创建scheduler systemd unit文件
 echo "=========创建scheduler systemd unit文件========="
-cat > kube-scheduler.service <<EOF
+cat > ${SCHEDULER_PATH}/kube-scheduler.service <<EOF
 [Unit]
 Description=Kubernetes Scheduler
 Documentation=https://github.com/GoogleCloudPlatform/kubernetes
@@ -81,7 +83,7 @@ RestartSec=60
 [Install]
 WantedBy=multi-user.target
 EOF
-cat kube-scheduler.service
+cat ${SCHEDULER_PATH}/kube-scheduler.service
 
 # 分发scheduler及启动
 echo "=========分发scheduler及启动========="
@@ -94,20 +96,20 @@ for master_ip in ${MASTER_IPS[@]}
        systemctl stop kube-scheduler
        rm -f /usr/local/bin/kube-scheduler
        fi"
-    scp kubernetes/server/bin/kube-scheduler \
+    scp ${SCHEDULER_PATH}/kube-scheduler \
       root@${master_ip}:/usr/local/bin/
 
     echo "分发证书和私钥"
     ssh root@${master_ip} "mkdir -p /etc/kubernetes/cert"
-    scp kube-scheduler*.pem \
+    scp ${SCHEDULER_PATH}/kube-scheduler*.pem \
       root@${master_ip}:/etc/kubernetes/cert/
 
     echo "分发kubeconfig文件"
-    scp kube-scheduler.kubeconfig \
+    scp ${SCHEDULER_PATH}/kube-scheduler.kubeconfig \
       root@${master_ip}:/etc/kubernetes/
 
     echo "分发systemd unit文件"
-    scp kube-scheduler.service \
+    scp ${SCHEDULER_PATH}/kube-scheduler.service \
       root@${master_ip}:/usr/lib/systemd/system/
 
     echo "启动kube-scheduler服务"
