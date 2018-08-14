@@ -32,6 +32,7 @@ cfssl gencert \
 ${KUBECTL_PATH}/admin-csr.json | \
 cfssljson -bare ${KUBECTL_PATH}/admin
 if [ $? -ne 0 ];then echo "生成kubectl证书和私钥失败，退出脚本";exit 1;fi
+chmod +r ${KUBECTL_PATH}/admin-key.pem
 ls ${KUBECTL_PATH}/admin*.pem
 
 # 创建kubeconfig文件
