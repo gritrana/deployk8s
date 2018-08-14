@@ -30,7 +30,7 @@ cat ${CONTROLLER_MANAGER_PATH}/kube-controller-manager-csr.json
 
 # 生成controller-manager证书和私钥
 echo "========生成controller-manager证书和私钥========"
-cfssl gencert\
+cfssl gencert \
 -ca=/etc/kubernetes/cert/ca.pem \
 -ca-key=/etc/kubernetes/cert/ca-key.pem \
 -config=/etc/kubernetes/cert/ca-config.json \
