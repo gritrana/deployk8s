@@ -74,6 +74,7 @@ ls /etc/kubectl/cert/admin*.pem
 
 # 分发kubeconfig文件
 echo "=======分发kubectl kubeconfig文件========"
+mkdir -p ~/.kube
 cp ${KUBECTL_PATH}/kubectl.kubeconfig ~/.kube/config
 if [ $? -ne 0 ];then echo "分发kubectl kubeconfig文件失败，退出脚本";exit 1;fi
 
