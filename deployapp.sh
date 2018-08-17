@@ -39,6 +39,7 @@ for node_ip in ${NODE_IPS[@]}
 echo "========编写testgin部署yaml========"
 cat > ${TESTGIN_PATH}/testgin.yaml << EOF
 ---
+# 创建deployment
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -54,21 +55,22 @@ spec:
         app: web
     spec:
       containers:
-        - name: testgin
-          image: xujintao/testgin:1.0.0.41
-          ports:
-            - containerPort: 8080
-          volumeMounts:
-            - name: my-config
-              mountPath: /etc/testgin
-          args: [/etc/testgin/config.json]
+      - name: testgin
+        image: xujintao/testgin:1.0.0.41
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: my-config
+          mountPath: /etc/testgin
+        args: [/etc/testgin/config.json]
       
       volumes:
-        - name: my-config
-          hostPath:
-            path: /root/testgin
+      - name: my-config
+        hostPath:
+          path: /root/testgin
 
 ---
+# 暴露deployment
 # kubectl expose deployment testgin --type=NodePort --port=8080
 apiVersion: v1
 kind: Service
@@ -77,17 +79,47 @@ metadata:
   labels:
     app: web
 spec:
-  ports:
-    - port: 8080
-      targetPort: 8080
-      #nodePort: default, see NODE_PORT_RANGE from env.sh
-      protocol: TCP
   selector:
     app: web
+  ports:
+  - port: 8080
+    targetPort: 8080
+    # NODE_PORT_RANGE is [8400, 9000]
+    # 插件使用[8401, 8499]
+    # 应用使用[8501, 8599]
+    # 其它预留着
+    nodePort: 8501
+    protocol: TCP
+
+  # SERVICE_CIDR is 10.254.0.0/16
+  # k8s系统使用[10.254.0.1, 10.254.0.255]
+  # 插件使用[10.254.1.1, 10.254.1.255]
+  # 应用使用[10.254.2.1, 10.254.2.255]
+  # 其它预留
+  clusterIP: 10.254.2.1
+  type: NodePort
+
+---
+# 使用ingress插件来管理服务
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: testgin
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+  - host: ingress.testgin.com
+    http:
+      paths:
+      - backend:
+          serviceName: testgin
+          servicePort: 8080
+
 EOF
 cat ${TESTGIN_PATH}/testgin.yaml
 
 # 创建testgin部署并暴露服务
 echo "========创建testgin部署并暴露服务========"
-kubectl create -f ${TESTGIN_PATH}/testgin.yaml
+kubectl apply -f ${TESTGIN_PATH}/testgin.yaml
 
