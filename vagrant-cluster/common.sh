@@ -26,6 +26,10 @@ echo "alias vi=vim" >> /root/.bashrc
 echo "永久关闭firewalld"
 systemctl disable firewalld
 
+# 修复NetworkManager与network冲突的问题
+echo "禁用NetworkManager"
+systemctl disable NetworkManager
+
 echo "设置CST时区"
 timedatectl set-timezone Asia/Shanghai
 
