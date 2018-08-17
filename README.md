@@ -109,15 +109,21 @@ curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 
 ### 第11步，预留给插件（可选）  
 
+#### 11.1, 使用nginx-ingress插件  
+使用[nginx-ingress官方](https://kubernetes.github.io/ingress-nginx/deploy/)给的guide，只需要执行一个命令就行了。
+```
+kubectl apply -f nginx-ingress-controller.yaml
+```
+
 ### 第12步，部署自己的应用（可选）  
-比如我自己的一个docker镜像：
+比如我自己的一个app：
 ```sh
 ./deployapp.sh
 ```
 
-## Document  
+## Documentation  
 
-### 1.证书签名请求与RBAC的对应关系  
+### 1, 证书签名请求与RBAC的对应关系  
 该命令`kubectl get clusterrolebindings -o wide`可以得到下面这个表格  
 可以看到kubernetes预留的subjects被绑定到哪个角色了。subjects就是下面表格中的usr/group/serviceaccounts
 
@@ -138,7 +144,7 @@ user对应的是证书签名请求中的CN字段的值，group对应的是证书
 
 因为k8s的authentication和authorization花样太多了，这里只是冰山一角的简化流程，可以这么理解。
 
-* admin的证书签名请求  
+#### 1.1, admin的证书签名请求  
 因为绑定到cluster-admin（角色）的system:masters(subjects)是个group，  
 所以names.O字段的是system:masters，其他随便写(CN字段我是为了方便演示才写的admin，其实它也是可以随便写的)。
 ```sh
@@ -160,7 +166,7 @@ user对应的是证书签名请求中的CN字段的值，group对应的是证书
 }
 ```
 
-* kube-controller-manager的证书签名请求  
+#### 1.2, kube-controller-manager的证书签名请求  
 因为绑定到system:kube-controller-manager（角色）的system:kube-controller-manager(subjects)是个user，  
 所以CN字段的是system:kube-controller-manager，其他随便写。
 ```sh
@@ -188,7 +194,7 @@ user对应的是证书签名请求中的CN字段的值，group对应的是证书
 }
 ```
 
-* kube-scheduler的证书签名请求  
+#### 1.3, kube-scheduler的证书签名请求  
 因为绑定到system:kube-scheduler(角色)的system:kube-scheduler(subjects)是个user，  
 所以CN字段的是system:kube-scheduler，其他随便写。
 ```sh
@@ -216,7 +222,7 @@ user对应的是证书签名请求中的CN字段的值，group对应的是证书
 }
 ```
 
-* kubelet的证书签名请求方式1(默认)  
+#### 1.4, kubelet的证书签名请求方式1(默认)  
 使用node授权方式，这个不是RBAC授权。
 ```sh
 {
@@ -246,7 +252,7 @@ user对应的是证书签名请求中的CN字段的值，group对应的是证书
 
 我这里使用的是v1.11.0，我api-server启动参数里面的authorization-mode值是Node和RBAC，我使用node授权方式来对kubelet进行授权，不使用RBAC授权就不需要system:node集群角色，这个没有毛病。
 
-* kubelet的证书签名请求方式2  
+#### 1.5, kubelet的证书签名请求方式2  
 我想了想，对于kubelet我还想使用RBAC，那么我必须自己创建一个集群角色绑定，我懒我连绑定都不想创建，我使用了system:masters这个组  
 ```sh
 {
@@ -268,11 +274,11 @@ user对应的是证书签名请求中的CN字段的值，group对应的是证书
 ```
 names.O字段的值是system:masters，CN随便写。这个也行的。
 
-* kubelet的证书签名请求方式3  
+#### 1.6, kubelet的证书签名请求方式3  
 因为认证(authentication)用的是bootstrap token，所以kubelet连证书和密钥都不需要创建。
 大佬们起kubelet都是用的bootstrap方式，可是我觉得bootstrap搞的太复杂，都是一家人还搞什么区别对待搞什么24小时token还approve什么的。为了能approve证书签名请求，为2个组创建了4个集群角色绑定，太复杂了。所以这个我照抄的他们的。
 
-* kube-proxy的证书签名请求  
+#### 1.7, kube-proxy的证书签名请求  
 因为绑定到system:node-proxier(角色)的system:kube-proxy(subject)是个user，（这不一致的名字一看就知道不是同一个人开发的）  
 所以CN字段的是system:kube-proxy，其他随便写。
 ```sh
@@ -294,4 +300,14 @@ names.O字段的值是system:masters，CN随便写。这个也行的。
 }
 ```
 
-* 一些插件还没搞好
+### 2, nginx-ingress插件的说明  
+其实你是使用的我的yaml来安装nginx-ingress的，如果想看我这个yaml和官方给的yaml有什么区别的话，可以这样(注意版本)：
+```
+curl -O https://github.com/kubernetes/ingress-nginx/blob/nginx-0.18.0/deploy/mandatory.yaml
+diff mandatory.yaml nginx-ingress-controller.yaml
+```
+这是0.18.0的版本，我在repo的tag里找的，当前是最新的，然后我修改了3个地方：  
+1是把gcr.io的镜像替换为docker.io的镜像(有人已经把镜像搬到dockerhub了，而且还得到不少star)；  
+2是给nginx-ingress-controller的deployment添加了一个label;  
+3是暴露了nginx-ingress-controller服务。  
+你想用更新的，对照着修改就行了。
