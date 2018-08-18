@@ -225,9 +225,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: nginx-ingress-controller
-  namespace: ingress-nginx
-  labels:
-    app: neginx-ingress-controller
+  namespace: ingress-nginx 
 spec:
   replicas: 1
   selector:
@@ -297,29 +295,37 @@ spec:
 
 ---
 # 暴露nginx-ingress-controller
+
+# NODE_PORT_RANGE is [8400, 9000]
+# 插件使用[8401, 8499]
+# 应用使用[8501, 8599]
+# 其它预留着
+
+# SERVICE_CIDR is 10.254.0.0/16
+# k8s系统使用[10.254.0.1, 10.254.0.255]
+# 插件使用[10.254.1.1, 10.254.1.255]
+# 应用使用[10.254.2.1, 10.254.2.255]
+# 其它预留
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx-ingress-controller
+  name: ingress-nginx
   namespace: ingress-nginx
 spec:
   selector:
-    app: nginx-ingress-controller
+    app: ingress-nginx
   ports:
-  - protocol: TCP
+  - name: http
+    protocol: TCP
     port: 80
     targetPort: 80
-    # NODE_PORT_RANGE is [8400, 9000]
-    # 插件使用[8401, 8499]
-    # 应用使用[8501, 8599]
-    # 其它预留着
     nodePort: 8401
-  
-  # SERVICE_CIDR is 10.254.0.0/16
-  # k8s系统使用[10.254.0.1, 10.254.0.255]
-  # 插件使用[10.254.1.1, 10.254.1.255]
-  # 应用使用[10.254.2.1, 10.254.2.255]
-  # 其它预留
+  - name: https
+    protocol: TCP
+    port: 443
+    targetPort: 443
+    nodePort: 8402
   clusterIP: 10.254.1.1
   type: NodePort
+
 
