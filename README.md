@@ -2,11 +2,22 @@
 
 ## 感谢
 感谢 https://github.com/opsnull/follow-me-install-kubernetes-cluster 作者及其贡献者。  
-它是3个节点的集群，为了更清楚的认识k8s。
-我这里搞了3个master和3个node，那个dev是用来分发的或者说是用来操作集群的。  
-如果部署过程中遇到什么问题可以提issues也可以加这个QQ群95786324  
+感谢 https://github.com/gjmzj/kubeasz 作者及其贡献者。  
 
-注意：当前分支部署的是kubernetes v1.11.0，kubernetes版本更新很快1天1个版本，高版本与低版本会有比较大的区别，问题也总是出在上面。  
+我这里搞了1个dev+3个master+3个node，它们全是虚拟出来的，可以理解为是baremetal。  
+哦，对了，那个dev是用来分发的或者说是用来操作集群的。  
+> 为什么要搞个dev？
+> 1是为了区分集群和dev，集群是部署用的上面没有gcc或者golang环境，dev是开发用的有海量的开发工具。
+> 2是kubectl是客户端工具，得有个地方放吧。
+> 3我建议有这么一个dev的逻辑。
+> 如果你一直是做linux开发，有自己的dev，那么可以使用自己的dev，你的dev上得安装git工具(当然这是废话了)。
+
+如果部署过程中遇到什么问题可以提issues也可以加这个QQ群95786324，进群找阿皮  
+
+当前部署的是kubernetes v1.11.0，视情况考虑部署更高的版本，kubernetes版本更新很快1天1个版本，高版本与低版本会有比较大的区别，问题也总是出在上面。  
+工具及版本：vagrant 2.1.2, virtualBox 5.2.14  
+我没有使用ansible，因为我的集群就3个master+3个node，如果是3个master+100个node可能就需要ansible了。
+
 欢迎issues和pull request
 
 ## Quick start
@@ -109,10 +120,10 @@ curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 
 ### 第11步，预留给插件（可选）  
 
-#### 11.1, 使用nginx-ingress插件  
-使用[nginx-ingress官方](https://kubernetes.github.io/ingress-nginx/deploy/)给的guide，只需要执行一个命令就行了。
+#### 11.1, 使用ingress-nginx插件  
+使用[ingress-nginx官方](https://kubernetes.github.io/ingress-nginx/deploy/)给的guide，只需要执行一个命令就行了。
 ```
-kubectl apply -f nginx-ingress-controller.yaml
+kubectl apply -f deployingressnginx.yaml
 ```
 
 ### 第12步，部署自己的应用（可选）  
@@ -120,6 +131,8 @@ kubectl apply -f nginx-ingress-controller.yaml
 ```sh
 ./deployapp.sh
 ```
+在windows/mac上打开chrome，输入：http://ingress.testgin.com:8401/thirdapi/r1  
+就可以看见结果了。
 
 ## Documentation  
 
@@ -300,14 +313,19 @@ names.O字段的值是system:masters，CN随便写。这个也行的。
 }
 ```
 
-### 2, nginx-ingress插件的说明  
-其实你是使用的我的yaml来安装nginx-ingress的，如果想看我这个yaml和官方给的yaml有什么区别的话，可以这样(注意版本)：
+### 2, ingress-nginx插件的说明  
+其实你是使用的我的yaml来安装ingress-nginx的，如果想看我这个yaml和官方给的yaml有什么区别的话，可以这样(注意版本)：
 ```
 curl -O https://github.com/kubernetes/ingress-nginx/blob/nginx-0.18.0/deploy/mandatory.yaml
 diff mandatory.yaml nginx-ingress-controller.yaml
 ```
-这是0.18.0的版本，我在repo的tag里找的，当前是最新的，然后我修改了3个地方：  
-1是把gcr.io的镜像替换为docker.io的镜像(有人已经把镜像搬到dockerhub了，而且还得到不少star)；  
-2是给nginx-ingress-controller的deployment添加了一个label;  
-3是暴露了nginx-ingress-controller服务。  
-你想用更新的，对照着修改就行了。
+这是0.18.0的版本，我在repo的tag里找的，当前是最新的，然后我修改了2个地方：  
+1是把gcr.io的镜像替换为默认的docker.io的镜像(有人已经把镜像搬到dockerhub了，而且还得到不少star)；  
+2是添加了官方的baremetal方法暴露了ingress-nginx服务。  
+你可以像这样查看baremetal方法暴露服务的yaml：
+```
+curl -O https://github.com/kubernetes/ingress-nginx/blob/nginx-0.18.0/deploy/provider/baremetal/service-nodeport.yaml
+cat service-nodeport.yaml
+```
+裸金属使用的是NodePort类型暴露ingress-nginx服务的，我只是指定了nodePort和clusterIP。  
+你想用更新的，就用master分支，对照着修改就行了。
