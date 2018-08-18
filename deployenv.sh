@@ -110,6 +110,14 @@ for ((i=0; i<3; i++))
             echo '追加${MASTER_IPS[j]} ${MASTER_NAMES[j]}'
             echo '${MASTER_IPS[j]} ${MASTER_NAMES[j]}' >> /etc/hosts
           fi
+          if [ \"\`sed -n -e '/${NODE_IPS[j]}\s\+${NODE_NAMES[j]}/p' \
+            /etc/hosts\`\" ]
+          then
+            echo 'skip'
+          else
+            echo '追加${NODE_IPS[j]} ${NODE_NAMES[j]}'
+            echo '${NODE_IPS[j]} ${NODE_NAMES[j]}' >> /etc/hosts
+          fi
           "
       done
   done
