@@ -1,6 +1,6 @@
 ![](https://github.com/xujintao/deployk8s/blob/master/deployk8s.jpg)
 
-## 感谢
+## 感谢  
 感谢 https://github.com/opsnull/follow-me-install-kubernetes-cluster 作者及其贡献者。  
 感谢 https://github.com/gjmzj/kubeasz 作者及其贡献者。  
 
@@ -20,18 +20,13 @@
 
 欢迎issues和pull request
 
-## Quick start
-### 第1步， 本地开发机  
-所有的部署工作都是在开发机(dev)上进行的。我已经准备好了[dev Vagrantfile](https://github.com/xujintao/deployk8s/blob/master/Vagrantfile)，
+## Quick start  
+### 第1步， 准备box镜像并与vagrant关联起来  
 你需要提供一个centos7的box，如果没有，那么可以点这个[Centos7.5 box](https://vagrantcloud.com/centos/boxes/7/versions/1804.02/providers/virtualbox.box)下载，  
 如果下载不来，那就复制链接地址用迅雷下。
 
-### 第2步，准备6个虚机  
-这6个虚机的[cluster Vagrantfile](https://github.com/xujintao/deployk8s/blob/master/vagrant-cluster/Vagrantfile)我也已经准备好了，也是使用的第1步的centos7的box。
-
-### 第3步，把机器都启动起来  
-* 把Vagrantfile中的box名与box镜像关联起来
-```sh
+下载好镜像后需要把Vagrantfile中的box名与box镜像关联起来，在你的mingw里面执行:  
+```
 # vagrant box add centos7 path_to_your_centos7
 # 例如：
 vagrant box add centos7 D:\\Box\\CentOS-7-x86_64-Vagrant-1804_02.VirtualBox.box
@@ -39,41 +34,54 @@ vagrant box add centos7 D:\\Box\\CentOS-7-x86_64-Vagrant-1804_02.VirtualBox.box
 # 或者：
 vagrant box add centos7 /d/Box/CentOS-7-x86_64-Vagrant-1804_02.VirtualBox.box
 ```
-* 启动开发机(dev)  
-```sh
+
+### 第2步，git clone(为了得到Vagrantfile)  
+所有的部署工作都是在开发机(dev)上进行的，我已经准备好了[dev Vagrantfile](https://github.com/xujintao/deployk8s/blob/master/Vagrantfile)，
+然后这6个虚机的[cluster Vagrantfile](https://github.com/xujintao/deployk8s/blob/master/vagrant-cluster/Vagrantfile)我也已经准备好了。  
+你git clone一下就能得到它们:
+```
+git clone https://github.com/xujintao/deployk8s.git
+```
+
+### 第3步，把机器都启动起来  
+进到刚才clone的项目里面  
+#### 启动开发机(dev)  
+```
 vagrant up dev
 ```
 以后就使用dev来指代开发机了。
 
-* 启动集群  
+#### 启动集群  
 ```sh
+cd vagrant-cluster
 vagrant up master1
 vagrant up master2
 vagrant up master3
 vagrant up node1
 vagrant up node2
 vagrant up node3
-# 可以直接vagrant up来启动所有机器
+# 可以直接vagrant up来启动所有集群机器
 ```
-到这一步如果成功了，还是很不容易的，部署工作基本成功了一半。
+到这一步如果成功了，还是很不容易的，部署工作基本成功了一半。  
+**注意：第1,2,3步都是在windows下进行的**。
 
-### 第4步，git clone  
+### 第4步，再一次的git clone  
 好了好了，正式开始了。
 
-> 注意：这里其实还是蛮复杂的，我建议用xshell。
-> 比如使用xshell登录dev，使用xftp复制insecure_private_key还有curl下载的那几个文件到dev。
+> 我建议用xshell。
+> 比如使用xshell登录dev，使用xftp直接把insecure_private_key还有curl下载的那几个文件拖到dev。
 > 我自己就是用的xshell，下面那些命令行是我为了说明过程才写的。
 
-* 使用你的ssh工具登录到dev。  
+#### 使用你的ssh工具登录到dev  
 ```sh
 ssh -i ~/.vagrant.d/insecure_private_key \
 vagrant@192.168.0.2
 ```
 
-* 复制insecure_private_key。
+#### 复制insecure_private_key到dev  
 图方便我已经把不安全的公钥添加到集群机器的/root/.ssh/authorized_keys中了，  
 所以为了让root能从dev远程登录到集群机器，**需要把insecure_private_key弄到dev的~/.ssh/id_rsa中**。  
-```sh
+```
 scp -i ~/.vagrant.d/insecure_private_key \
 ~/.vagrant.d/insecure_private_key \
 vagrant@192.168.0.2:~/.ssh/id_rsa
@@ -84,14 +92,14 @@ chmod 600 ~/.ssh/id_rsa
 ```
 
 **注意：下面所有的操作都是在dev上进行的**
-* 把脚本clone下来：
-```sh
+#### 把脚本clone下来：  
+```
 git clone https://github.com/xujintao/deployk8s.git
 cd deployk8s
 ```
 
-* 准备几样东西（haproxy以及docker我已经内置在box里面了）到deployk8s目录下
-```sh
+#### 准备几样东西（haproxy以及docker我已经内置在box里面了）到deployk8s目录下  
+```
 # 下载cfssl
 curl -O https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
 curl -O https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
@@ -111,14 +119,15 @@ curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 ```
 
 ### 第5~10步，一键部署集群  
-```sh
+```
 ./deployk8s.sh 2>&1 | tee deployk8s.log
 ```
 等大概10分钟  
-如果没什么问题的话，到这里，集群部署就算成功了。如果有问题，可以通过日志来定位哪里出了问题。
-这个步骤可以是可以重复进行的。
+如果没什么问题的话，到这里，集群部署就算成功了。
+如果有问题，可以通过日志来定位哪里出了问题。
+哦，对了，这个步骤可以是可以重复进行的。
 
-### 第11步，预留给插件（可选）  
+### 第11步，部署插件（可选）  
 
 #### 11.1, 使用ingress-nginx插件  
 使用[ingress-nginx官方](https://kubernetes.github.io/ingress-nginx/deploy/)给的guide，只需要执行一个命令就行了。
@@ -128,7 +137,7 @@ kubectl apply -f deployingressnginx.yaml
 
 ### 第12步，部署自己的应用（可选）  
 比如我自己的一个app：
-```sh
+```
 ./deployapp.sh
 ```
 在windows/mac上打开chrome，输入：http://ingress.testgin.com:8401/thirdapi/r1  
@@ -317,15 +326,14 @@ names.O字段的值是system:masters，CN随便写。这个也行的。
 其实你是使用的我的yaml来安装ingress-nginx的，如果想看我这个yaml和官方给的yaml有什么区别的话，可以这样(注意版本)：
 ```
 curl -O https://github.com/kubernetes/ingress-nginx/blob/nginx-0.18.0/deploy/mandatory.yaml
-diff mandatory.yaml nginx-ingress-controller.yaml
-```
-这是0.18.0的版本，我在repo的tag里找的，当前是最新的，然后我修改了2个地方：  
-1是把gcr.io的镜像替换为默认的docker.io的镜像(有人已经把镜像搬到dockerhub了，而且还得到不少star)；  
-2是添加了官方的baremetal方法暴露了ingress-nginx服务。  
-你可以像这样查看baremetal方法暴露服务的yaml：
-```
 curl -O https://github.com/kubernetes/ingress-nginx/blob/nginx-0.18.0/deploy/provider/baremetal/service-nodeport.yaml
-cat service-nodeport.yaml
+cat mandatory.yaml service-nodeport.yaml > stdingressnginx.yaml
+diff stdingressnginx.yaml deployingressnginx.yaml
 ```
-裸金属使用的是NodePort类型暴露ingress-nginx服务的，我只是指定了nodePort和clusterIP。  
+这是0.18.0的版本，我在repo的tag里找的，当前是最新的。  
+如果仔细看的话，会发现我修改了2个地方：  
+> 1, 把gcr.io的镜像替换为默认的docker.io的镜像(有人已经把镜像搬到dockerhub了，而且还得到不少star)；  
+> 2, 暴露ingress-nginx服务的时候指定了nodePort和clusterIP。  
+
+裸金属使用的是NodePort类型暴露服务的，云厂商一般使用LoadBalancer类型暴露服务，我这个集群主机算裸金属。  
 你想用更新的，就用master分支，对照着修改就行了。
