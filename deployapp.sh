@@ -56,7 +56,7 @@ spec:
     spec:
       containers:
       - name: testgin
-        image: xujintao/testgin:1.0.0.41
+        image: xujintao/testgin:1.0.49
         ports:
         - containerPort: 8080
         volumeMounts:
