@@ -1,3 +1,12 @@
+# NODE_PORT_RANGE is [8400, 9000]
+# 插件使用[8401, 8499]
+# 应用使用[8501, 8599]
+# 其它预留着
+
+# SERVICE_CIDR is 10.254.0.0/16
+# 插件使用[10.254.0.1, 10.254.0.255]
+# 应用使用[10.254.1.1, 10.254.1.255]
+# 其它预留
 apiVersion: v1
 kind: Service
 metadata:
@@ -15,3 +24,4 @@ spec:
     targetPort: db
   selector:
     k8s-app: elasticsearch-logging
+  clusterIP: 10.254.0.5
