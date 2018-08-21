@@ -71,6 +71,17 @@ spec:
 
 ---
 # 暴露deployment
+
+# NODE_PORT_RANGE is [8400, 9000]
+# 插件使用[8401, 8499]
+# 应用使用[8501, 8599]
+# 其它预留着
+
+# SERVICE_CIDR is 10.254.0.0/16
+# 插件使用[10.254.0.1, 10.254.0.255]
+# 应用使用[10.254.1.1, 10.254.1.255]
+# 其它预留
+
 # kubectl expose deployment testgin --type=NodePort --port=8080
 apiVersion: v1
 kind: Service
@@ -84,19 +95,9 @@ spec:
   ports:
   - port: 8080
     targetPort: 8080
-    # NODE_PORT_RANGE is [8400, 9000]
-    # 插件使用[8401, 8499]
-    # 应用使用[8501, 8599]
-    # 其它预留着
     nodePort: 8501
     protocol: TCP
-
-  # SERVICE_CIDR is 10.254.0.0/16
-  # k8s系统使用[10.254.0.1, 10.254.0.255]
-  # 插件使用[10.254.1.1, 10.254.1.255]
-  # 应用使用[10.254.2.1, 10.254.2.255]
-  # 其它预留
-  clusterIP: 10.254.2.1
+  clusterIP: 10.254.1.1
   type: NodePort
 
 ---
