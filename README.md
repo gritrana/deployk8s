@@ -129,11 +129,18 @@ curl -O https://dl.k8s.io/v1.11.0/kubernetes-server-linux-amd64.tar.gz
 
 ### 第11步，部署插件（可选）  
 
-#### 11.1, 使用ingress-nginx插件  
-使用[ingress-nginx官方](https://kubernetes.github.io/ingress-nginx/deploy/)给的guide，只需要执行一个命令就行了。
+#### 11.1, 安装ingress-nginx:0.18.0插件  
+使用[ingress-nginx官方](https://kubernetes.github.io/ingress-nginx/deploy/)给的guide，只需要执行一个命令就行了。哦，对了，这是0.18.0的版本。
 ```
-kubectl apply -f deployingressnginx.yaml
+kubectl apply -f ingress-nginx.yaml
 ```
+在主流开源项目都在为支持k8s做出自己的部署文件的时候，nginx坚持了一段时间，但最终还是向k8s低下了头。
+
+#### 11.2, 安装coredns:1.2.0插件  
+```
+kubectl apply -f coredns.yaml
+```
+这个部署文件是kubernetes官方给coredns做的，coredns还是很坚强的，继续保持。
 
 ### 第12步，部署自己的应用（可选）  
 比如我自己的一个app：
@@ -328,7 +335,7 @@ names.O字段的值是system:masters，CN随便写。这个也行的。
 curl -O https://github.com/kubernetes/ingress-nginx/blob/nginx-0.18.0/deploy/mandatory.yaml
 curl -O https://github.com/kubernetes/ingress-nginx/blob/nginx-0.18.0/deploy/provider/baremetal/service-nodeport.yaml
 cat mandatory.yaml service-nodeport.yaml > stdingressnginx.yaml
-diff stdingressnginx.yaml deployingressnginx.yaml
+diff stdingressnginx.yaml ingress-nginx.yaml
 ```
 这是0.18.0的版本，我在repo的tag里找的，当前是最新的。  
 如果仔细看的话，会发现我修改了2个地方：  
@@ -337,3 +344,10 @@ diff stdingressnginx.yaml deployingressnginx.yaml
 
 裸金属使用的是NodePort类型暴露服务的，云厂商一般使用LoadBalancer类型暴露服务，我这个集群主机算裸金属。  
 你想用更新的，就用master分支，对照着修改就行了。
+
+### 3, coredns插件的说明  
+这个也是使用的我修改过的yaml，主要还是修改了镜像源，可以这样对比一下看看我修改了哪些地方：
+```
+curl -O https://github.com/kubernetes/kubernetes/blob/v1.11.0/cluster/addons/dns/coredns/coredns.yaml.base
+diff coredns.yaml.base coredns.yaml
+```
