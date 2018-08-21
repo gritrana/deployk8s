@@ -55,7 +55,7 @@ export CLUSTER_KUBERNETES_SVC_IP="10.254.0.1"
 export CLUSTER_DNS_SVC_IP="10.254.0.2"
 
 # 集群 DNS 域名
-export CLUSTER_DNS_DOMAIN="cluster.local."
+export CLUSTER_DNS_DOMAIN="cluster.local"
 
 # build path
 export KEEPALIVED_PATH=build/keepalived
