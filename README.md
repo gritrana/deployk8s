@@ -5,6 +5,22 @@
 感谢 https://github.com/gjmzj/kubeasz 作者及其贡献者。  
 
 我这里搞了1个dev+3个master+3个node，它们全是虚拟出来的，可以理解为是baremetal。  
+配置情况：  
+
+| 机器 | 配置 |
+| ------ | ------ |
+| dev | 1cpu, 512M memory |
+| | |
+| master1 | 1cpu, 512M memory |
+| master2 | 1cpu, 512M memory |
+| master3 | 1cpu, 512M memory |
+| | |
+| node1 | 1cpu, 512M memory |
+| node2 | 1cpu, 512M memory |
+| node3 | 1cpu, 512M memory |
+| | |
+| 合计 | 弹性cpu, 3.5G memory |
+
 哦，对了，那个dev是用来分发的或者说是用来操作集群的。  
 > 为什么要搞个dev？
 > 1是为了区分集群和dev，集群是部署用的上面没有gcc或者golang环境，dev是开发用的有海量的开发工具。
@@ -19,6 +35,7 @@
 我没有使用ansible，因为我的集群就3个master+3个node，如果是3个master+100个node可能就需要ansible了。
 
 欢迎issues和pull request
+
 
 ## Quick start  
 ### 第1步， 准备box镜像并与vagrant关联起来  
